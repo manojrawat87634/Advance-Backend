@@ -1,0 +1,35 @@
+[ ] Sessions & Cookies
+[ ] OAuth2
+[ ] RBAC
+[ ] API Design
+[ ] Validation
+[ ] Security
+[ ] Indexing
+[ ] Transactions
+[ ] Isolation Levels
+[ ] Query Optimization
+[ ] Redis
+[ ] Rate Limiting
+[ ] Distributed Cache
+[ ] RabbitMQ
+[ ] Kafka
+[ ] Event Driven Architecture
+[ ] File Storage
+[ ] CDN
+[ ] Payment Systems
+[ ] Webhooks
+[ ] Refunds
+[ ] Scalability
+[ ] Load Balancing
+[ ] CAP Theorem
+[ ] Distributed Systems
+[ ] Logging
+[ ] Monitoring
+[ ] Docker
+[ ] Nginx
+[ ] Cloud Basics
+[ ] Monolith
+[ ] Microservices
+[ ] DDD
+[ ] CQRS
+[ ] Clean Architecture
