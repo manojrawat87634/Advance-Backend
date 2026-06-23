@@ -134,6 +134,43 @@ toast.error(message);
       setButton?.(false);
     }
   };
+  const apiUnAuthPost = async (endpoint, body = {}, setButton, myFunc = async () => { }) => {
+    try {
+
+      const res = await axios.post(`${API_BASE_URL}${endpoint}`, body,
+        //  {
+        // headers: {
+        //   Authorization: `Bearer ${freshToken}`,
+        //   "Content-Type": "application/json",
+        // },
+        // timeout: 10000,
+      // }
+    );
+
+      await myFunc();
+      console.log(res.data);
+      return res.data;
+    } catch (error) {
+      console.log(error);
+      console.log("FULL ERROR =>", error.response);
+
+const data = error?.response?.data;
+
+const message =
+  data?.error ||
+  data?.message ||
+  (Array.isArray(data?.errors) ? data.errors.join(", ") : null) ||
+  error.message ||
+  "Something went wrong.";
+
+toast.error(message);
+      toast.error(message);
+      return null;
+    } finally {
+      setLoading(false);
+      setButton?.(false);
+    }
+  };
   const apiMPost = async (endpoint, body = {}, setButton, myFunc = async () => { }) => {
     try {
       setButton?.(true);
@@ -252,6 +289,7 @@ toast.error(message);
         setToken,
         setLoading,
         apiPut,
+        apiUnAuthPost,
         apiDelete,
       }}
     >

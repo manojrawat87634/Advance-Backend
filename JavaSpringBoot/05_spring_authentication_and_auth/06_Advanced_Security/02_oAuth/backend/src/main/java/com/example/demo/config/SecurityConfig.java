@@ -12,14 +12,22 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
     @Bean
-    SecurityFilterChain mySecurityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**", "/login/oauth2/code/google")
-                        .permitAll().anyRequest()
-                        .authenticated()).oauth2Login(oauth -> {});;
-        return http.build();
-    }
+SecurityFilterChain mySecurityFilterChain(
+        HttpSecurity http) throws Exception {
 
+    http
+        .cors(cors -> {})
+        .csrf(csrf -> csrf.disable())
+        .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                        "/auth/**")
+                .permitAll()
+                .anyRequest()
+                .authenticated());
+
+    return http.build();
+}
+    
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

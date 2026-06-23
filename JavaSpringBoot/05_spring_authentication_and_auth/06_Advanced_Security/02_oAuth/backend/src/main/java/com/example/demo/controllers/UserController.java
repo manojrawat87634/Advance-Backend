@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.demo.dto.auth.AuthRequest;
+import com.example.demo.dto.auth.GoogleLoginRequest;
 import com.example.demo.services.auth.UserAuthService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,8 +27,7 @@ public class UserController {
         userAuthService.registerUser(request);
 
         return ResponseEntity.ok(
-                Map.of("message", "User registered successfully!")
-        );
+                Map.of("message", "User registered successfully!"));
     }
 
     @PostMapping("/login")
@@ -35,16 +35,28 @@ public class UserController {
             @Valid @RequestBody AuthRequest request,
             HttpServletRequest httpRequest) {
 
-        Map<String, String> response =
-                userAuthService.login(request, httpRequest);
+        Map<String, String> response = userAuthService.login(request, httpRequest);
 
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/logout")
-public ResponseEntity<String> logout(@RequestParam Long sessionId) {
-    userAuthService.logout(sessionId);
+    public ResponseEntity<String> logout(@RequestParam Long sessionId) {
+        userAuthService.logout(sessionId);
 
-    return ResponseEntity.ok("Logged out successfully");
-}
+        return ResponseEntity.ok("Logged out successfully");
+    }
+
+    @PostMapping("/oauth-google")
+    public ResponseEntity<?> googleLogin(
+            @RequestBody GoogleLoginRequest request,
+            HttpServletRequest httpRequest)
+            throws Exception {
+                System.out.println("hiiiiii");
+                System.out.println(request.getIdToken());
+        return ResponseEntity.ok(
+                userAuthService.googleLogin(
+                        request.getIdToken(),
+                        httpRequest));
+    }
 }

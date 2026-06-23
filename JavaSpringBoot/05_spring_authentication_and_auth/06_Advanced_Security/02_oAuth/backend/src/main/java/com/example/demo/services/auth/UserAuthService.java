@@ -27,6 +27,9 @@ import jakarta.servlet.http.HttpServletRequest;
 public class UserAuthService {
 
         @Autowired
+        private GoogleTokenService googleTokenService;
+
+        @Autowired
         private UserRepo userRepo;
 
         @Autowired
@@ -177,4 +180,95 @@ public class UserAuthService {
 
                 sessionRepo.save(session);
         }
+
+        public Map<String, String> googleLogin(
+               String idToken,
+                HttpServletRequest httpRequest)
+                throws Exception {
+    var payload =
+            googleTokenService.verify(idToken);
+    String email = payload.getEmail();
+    UserModel user = userRepo
+            .findByEmail(email)
+            .orElseGet(() -> {
+
+                UserModel newUser =
+                        new UserModel();
+
+                newUser.setEmail(email);
+
+                // Google users don't use password
+                newUser.setPassword(
+                        passwordEncoder.encode(
+                                UUID.randomUUID().toString()));
+
+                userRepo.save(newUser);
+
+                RoleModel role = roleRepo
+                        .findByName("student")
+                        .orElseThrow();
+
+                UserRoleModel userRole =
+                        new UserRoleModel();
+
+                userRole.setUser(newUser);
+                userRole.setRole(role);
+
+                userRoleRepo.save(userRole);
+
+                return newUser;
+            });
+
+    String ipAddress =
+            RequestUtils.getClientIp(httpRequest);
+
+    String userAgent =
+            RequestUtils.getUserAgent(httpRequest);
+
+    String deviceName =
+            RequestUtils.parseDevice(userAgent);
+
+    String sessionId =
+            UUID.randomUUID().toString();
+
+    List<String> roles =
+            userRoleRepo.findRoleNamesByUserId(
+                    user.getId());
+
+    String accessToken =
+            jwtUtil.generateAccessToken(
+                    user.getId(),
+                    sessionId,
+                    roles);
+
+    String refreshToken =
+            jwtUtil.generateRefreshToken(
+                    sessionId);
+
+    UserSessionModel session =
+            new UserSessionModel();
+
+    session.setUser(user);
+    session.setSessionId(sessionId);
+    session.setRefreshToken(refreshToken);
+
+    session.setIpAddress(ipAddress);
+    session.setUserAgent(userAgent);
+    session.setDeviceName(deviceName);
+
+    session.setLoginAt(LocalDateTime.now());
+    session.setLastActivity(LocalDateTime.now());
+    session.setExpiresAt(
+            LocalDateTime.now().plusDays(7));
+
+    session.setIsRevoked(false);
+
+    sessionRepo.save(session);
+        System.out.println( Map.of(
+            "accessToken", accessToken,
+            "refreshToken", refreshToken));
+    return Map.of(
+            "accessToken", accessToken,
+            "refreshToken", refreshToken);
+}
 }
