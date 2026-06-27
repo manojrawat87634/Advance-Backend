@@ -22,9 +22,7 @@ public class UserController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(
             @Valid @RequestBody AuthRequest request) {
-
-        userAuthService.registerUser(request);
-
+                userAuthService.registerUser(request);
         return ResponseEntity.ok(
                 Map.of("message", "User registered successfully!")
         );
