@@ -59,16 +59,12 @@ public class ApiKeyService {
     }
 
     public void revokeApiKey(Long apiKeyId, UserModel user) {
-
         ApiKey apiKey = apiKeyRepository.findById(apiKeyId)
                 .orElseThrow(() -> new RuntimeException("API Key not found"));
-
         if (!apiKey.getUser().getId().equals(user.getId())) {
             throw new RuntimeException("You do not own this API key.");
         }
-
         apiKey.setActive(false);
-
         apiKeyRepository.save(apiKey);
     }
 

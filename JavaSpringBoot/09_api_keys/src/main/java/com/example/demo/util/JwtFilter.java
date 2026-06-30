@@ -30,15 +30,18 @@ public class JwtFilter extends OncePerRequestFilter {
             FilterChain chain)
             throws IOException, ServletException {
                 String header = request.getHeader("Authorization");
-                System.out.println("hiii");
+
 
         if (header == null || !header.startsWith("Bearer ")) {
             chain.doFilter(request, response);
             return;
         }
+        if (request.getServletPath().startsWith("/apikey")) {
+            chain.doFilter(request, response);
+            return;
+}
 
         String token = header.substring(7);
-                System.out.println(token);
 
         try {
             if (!jwtUtil.validate(token)) {
@@ -46,7 +49,6 @@ public class JwtFilter extends OncePerRequestFilter {
                 return;
             }
 String email = jwtUtil.extractAllClaims(token).get("email", String.class);
-                System.out.println(email);
 
             UserDetails userDetails =
                     userDetailsService.loadUserByUsername(email);

@@ -11,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.example.demo.apiKey.filter.ApiKeyAuthenticationFilter;
 import com.example.demo.util.JwtFilter;
 
 @Configuration
@@ -18,16 +19,29 @@ public class SecurityConfig {
     @Autowired
     private JwtFilter jwtFilter;
 
+@Autowired
+private ApiKeyAuthenticationFilter apiKeyAuthenticationFilter;
+
     @Bean
-    SecurityFilterChain mySecurityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**")
-                        .permitAll().anyRequest()
-                        .authenticated())
-                        .addFilterBefore(jwtFilter,
-                    UsernamePasswordAuthenticationFilter.class);
-        return http.build();
-    }
+SecurityFilterChain mySecurityFilterChain(HttpSecurity http) throws Exception {
+
+    http
+        .csrf(csrf -> csrf.disable())
+        .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/auth/**")
+                .permitAll()
+                .requestMatchers("/apikey/**")
+                .permitAll()   // ApiKeyFilter will protect these
+                .anyRequest()
+                .authenticated())
+        .addFilterBefore(jwtFilter,
+                UsernamePasswordAuthenticationFilter.class)
+        .addFilterBefore(apiKeyAuthenticationFilter,
+                UsernamePasswordAuthenticationFilter.class)
+                ;
+
+    return http.build();
+}
 
     @Bean
     PasswordEncoder passwordEncoder() {
