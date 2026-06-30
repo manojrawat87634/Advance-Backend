@@ -32,6 +32,7 @@ public class JwtUtil {
 
     public String generateAccessToken(
         Long userId,
+        String email,
         String sessionId,
         List<String> roles) {
 
@@ -39,6 +40,7 @@ public class JwtUtil {
 
     return Jwts.builder()
             .subject(String.valueOf(userId))
+            .claim("email", email)
             .claim("sid", sessionId)
             .claim("roles", roles)
             .issuedAt(now)
@@ -82,10 +84,16 @@ public class JwtUtil {
         return extractAllClaims(token).get("sid", String.class);
     }
 
-    public String extractRole(String token) {
-        return extractAllClaims(token).get("role", String.class);
+@SuppressWarnings("unchecked")
+public List<String> extractRoles(String token) {
+    Object roles = extractAllClaims(token).get("roles");
+
+    if (roles instanceof List<?>) {
+        return (List<String>) roles;
     }
 
+    return List.of();
+}
     public String extractJti(String token) {
         return extractAllClaims(token).get("jti", String.class);
     }

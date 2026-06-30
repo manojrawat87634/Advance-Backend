@@ -91,6 +91,7 @@ public class UserAuthService {
 
                 String accessToken = jwtUtil.generateAccessToken(
                                 user.getId(),
+                                user.getEmail(),
                                 sessionId,
                                 roles);
 
@@ -138,6 +139,7 @@ public class UserAuthService {
 
                 String newAccessToken = jwtUtil.generateAccessToken(
                                 user.getId(),
+                                user.getEmail(),
                                 newSessionId,
                                 roles);
 
