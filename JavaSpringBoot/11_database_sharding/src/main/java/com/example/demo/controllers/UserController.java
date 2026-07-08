@@ -7,8 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.demo.dto.auth.AuthRequest;
-import com.example.demo.services.auth.UserAuthService;
-
+import com.example.demo.repo.UserRepo;
+// import com.example.demo.services.auth.UserAuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
@@ -16,15 +16,15 @@ import jakarta.validation.Valid;
 @RequestMapping("/auth")
 public class UserController {
 
-    @Autowired
-    private UserAuthService userAuthService;
-
+    // @Autowired
+    // private UserAuthService userAuthService;
+    @Autowired UserRepo userRepo;
+    private 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(
             @Valid @RequestBody AuthRequest request) {
-
-        userAuthService.registerUser(request);
-
+                userRepo.create(request);
+        // userAuthService.registerUser(request);
         return ResponseEntity.ok(
                 Map.of("message", "User registered successfully!")
         );
