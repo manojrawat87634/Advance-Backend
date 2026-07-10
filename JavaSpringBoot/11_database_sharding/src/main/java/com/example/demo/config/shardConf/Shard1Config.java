@@ -14,7 +14,7 @@ import jakarta.persistence.EntityManagerFactory;
 
 @Configuration
 @EnableJpaRepositories(
-        basePackages = "com.example.demo.repo.shard1",
+        basePackages = "com.example.demo.repo.auth.userRepo",
         entityManagerFactoryRef = "shard1EntityManagerFactory",
         transactionManagerRef = "shard1TransactionManager"
 )
@@ -28,7 +28,7 @@ public class Shard1Config {
 
         return builder
                 .dataSource(dataSource)
-                .packages("com.example.demo.models")
+                .packages("com.example.demo.models.auth")
                 .persistenceUnit("shard1")
                 .build();
     }

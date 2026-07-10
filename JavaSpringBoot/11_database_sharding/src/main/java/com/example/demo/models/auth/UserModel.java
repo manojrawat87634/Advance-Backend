@@ -31,29 +31,29 @@ public class UserModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 255)
+    @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
 
-    @Column(nullable = false)
-    private String password; // Store BCrypt hash only
+    @Column(name = "password", nullable = false, length = 255)
+    private String password;
 
     @Builder.Default
-    @Column(nullable = false)
+    @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
     @Builder.Default
-    @Column(nullable = false)
+    @Column(name = "is_email_verified", nullable = false)
     private Boolean isEmailVerified = false;
 
     @Builder.Default
-    @Column(nullable = false)
+    @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
 
-    @Builder.Default
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    // insertable = false lets MySQL handle 'DEFAULT CURRENT_TIMESTAMP' on creation
+    @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
+    private LocalDateTime createdAt;
 
-    @Builder.Default
-    @Column(nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    // insertable/updatable = false lets MySQL handle automatic initialization and updates
+    @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    private LocalDateTime updatedAt;
 }
