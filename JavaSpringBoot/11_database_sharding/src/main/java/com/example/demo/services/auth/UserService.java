@@ -3,8 +3,8 @@ package com.example.demo.services.auth;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.models.auth.UserModel;
-import com.example.demo.repo.auth.userRepo.UserRepoShard1;
-import com.example.demo.repo.auth.userRepo.UserRepoShard2;
+import com.example.demo.repo.auth.userRepo.shard1.UserRepoShard1;
+import com.example.demo.repo.auth.userRepo.shard2.UserRepoShard2;
 
 @Service
 public class UserService {
