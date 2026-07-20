@@ -1,7 +1,18 @@
-<!-- Spring boot + rabbit MQ Flow for JSON Message -->
+Spring boot + rabbit MQ Flow for JSON Message
 <!-- How to create Multiple Queue  -->
 
 
+Core Architecture 
+Producer
+Consumer 
+Queue
+Exchange 
+Binding
+Routing Key
+Message
+
+
+Producer -> RabbitMQ Message Broker -> Consumer
 What is message queue
 
 Message queuing allows applications to communicate by sending messages to each other. The 
