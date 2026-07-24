@@ -2,69 +2,27 @@ package com.example.demo.util;
 
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
 @Component
 public class JwtUtil {
 
-    private static final long ACCESS_TOKEN_EXPIRY =
-            1000L * 60 * 15; // 15 minutes
-
-    private static final long REFRESH_TOKEN_EXPIRY =
-            1000L * 60 * 60 * 24 * 7; // 7 days
-
-    private final String SECRET =
-            "mysupersecretkeymysupersecretkeymysupersecretkey123";
+    // Inject from application.properties / environment variable
+    @Value("${jwt.secret}")
+    private String secret;
 
     private SecretKey getSignKey() {
-        return Keys.hmacShaKeyFor(SECRET.getBytes());
+        return Keys.hmacShaKeyFor(secret.getBytes());
     }
-
-    // ---------------- ACCESS TOKEN ----------------
-
-    public String generateAccessToken(
-        Long userId,
-        String email,
-        String sessionId,
-        List<String> roles) {
-
-    Date now = new Date();
-
-    return Jwts.builder()
-            .subject(String.valueOf(userId))
-            .claim("email", email)
-            .claim("sid", sessionId)
-            .claim("roles", roles)
-            .issuedAt(now)
-            .expiration(new Date(now.getTime() + ACCESS_TOKEN_EXPIRY))
-            .signWith(getSignKey())
-            .compact();
-}
-
-    // ---------------- REFRESH TOKEN ----------------
-
-    public String generateRefreshToken(String sessionId) {
-
-        Date now = new Date();
-
-        return Jwts.builder()
-                .claim("sid", sessionId)
-                .claim("jti", UUID.randomUUID().toString())
-                .issuedAt(now)
-                .expiration(new Date(now.getTime() + REFRESH_TOKEN_EXPIRY))
-                .signWith(getSignKey())
-                .compact();
-    }
-
-    // ---------------- COMMON ----------------
 
     public Claims extractAllClaims(String token) {
         return Jwts.parser()
@@ -74,37 +32,32 @@ public class JwtUtil {
                 .getPayload();
     }
 
-    public Integer extractUserId(String token) {
-        return Integer.parseInt(
-                extractAllClaims(token).getSubject()
-        );
+    public String extractTokenType(String token) {
+        return extractAllClaims(token).get("type", String.class);
     }
 
-    public String extractSessionId(String token) {
-        return extractAllClaims(token).get("sid", String.class);
+    public String extractSubject(String token) {
+        return extractAllClaims(token).getSubject();
     }
 
-@SuppressWarnings("unchecked")
-public List<String> extractRoles(String token) {
-    Object roles = extractAllClaims(token).get("roles");
-
-    if (roles instanceof List<?>) {
-        return (List<String>) roles;
-    }
-
-    return List.of();
-}
-    public String extractJti(String token) {
-        return extractAllClaims(token).get("jti", String.class);
+    @SuppressWarnings("unchecked")
+    public List<String> extractScopes(String token) {
+        Object scopes = extractAllClaims(token).get("scopes");
+        if (scopes instanceof List<?>) {
+            return (List<String>) scopes;
+        }
+        return List.of();
     }
 
     public boolean isExpired(String token) {
-        return extractAllClaims(token)
-                .getExpiration()
-                .before(new Date());
+        return extractAllClaims(token).getExpiration().before(new Date());
     }
 
     public boolean validate(String token) {
-        return !isExpired(token);
+        try {
+            return !isExpired(token);
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
     }
 }
