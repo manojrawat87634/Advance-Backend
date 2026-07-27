@@ -7,20 +7,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.Map;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/media")
 public class MediaController {
-
     @Autowired
     private MediaMetadataRepository repository;
-
     @Autowired
     private S3StorageService s3Service;
-
     // -------------------------------------------------------------------
     // 1. GENERATE PRESIGNED UPLOAD URL
     // -------------------------------------------------------------------
@@ -28,13 +24,10 @@ public class MediaController {
     public ResponseEntity<?> getPresignedUploadUrl(
             @RequestBody UploadRequest request,
             Authentication authentication) {
-
         // Extracted automatically from JwtFilter (targetUserId)
         String userId = (String) authentication.getPrincipal();
-
         String mediaId = "med_" + UUID.randomUUID().toString().substring(0, 12);
         String s3Key = "uploads/user_" + userId + "/" + mediaId + "-" + request.getFileName();
-
         // Save initial record as PENDING
         MediaMetadata metadata = new MediaMetadata(
                 mediaId, userId, s3Key, request.getMimeType(), request.getFileSize(), MediaMetadata.MediaStatus.PENDING
