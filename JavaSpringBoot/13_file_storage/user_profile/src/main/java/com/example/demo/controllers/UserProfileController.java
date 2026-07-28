@@ -1,41 +1,41 @@
-// package com.example.demo.controllers;
+package com.example.demo.controllers;
 
-// import java.util.Map;
+import java.util.Map;
 
-// import org.springframework.beans.factory.annotation.Autowired;
-// import org.springframework.http.ResponseEntity;
-// import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
-// import com.example.demo.dto.auth.AuthRequest;
-// import com.example.demo.services.auth.UserAuthService;
+import com.example.demo.dto.auth.AuthRequest;
+import com.example.demo.services.auth.UserAuthService;
 
-// import jakarta.servlet.http.HttpServletRequest;
-// import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 
-// /**
-//  * UserProfileController
-//  */
+/**
+ * UserProfileController
+ */
 
-// @RestController
-// @RequestMapping("/user-profile")
-// public class UserProfileController {
+@RestController
+@RequestMapping("/user-profile")
+public class UserProfileController {
 
-//     @Autowired
-//     private UserAuthService userAuthService;
+    @Autowired
+    private UserAuthService userAuthService;
 
-//     @GetMapping("/get-user-info")
-//     public ResponseEntity<?> getUserInfo(
-//             @Valid @RequestBody AuthRequest request) {
+    @GetMapping("/get-user-info")
+    public ResponseEntity<?> getUserInfo(
+            @Valid @RequestBody AuthRequest request) {
 
-//         userAuthService.getUserInfo(request);
+        userAuthService.getUserInfoByRefreshToken(request);
 
-//         return ResponseEntity.ok(
-//                 Map.of("message", "User registered successfully!"));
-//     }
+        return ResponseEntity.ok(
+                Map.of("message", "User registered successfully!"));
+    }
 
-//     @PostMapping("/logout")
-//     public ResponseEntity<String> logout(@RequestParam Long sessionId) {
-//         userAuthService.logout(sessionId);
-//         return ResponseEntity.ok("Logged out successfully");
-//     }
-// }
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestParam Long sessionId) {
+        userAuthService.logout(sessionId);
+        return ResponseEntity.ok("Logged out successfully");
+    }
+}

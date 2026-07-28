@@ -43,6 +43,7 @@ export const DataProviderFuncComp = ({ children }) => {
       const freshToken = res.data.accessToken;
       setToken(freshToken);
       if (res.data.user) setUser(res.data.user);
+      console.log(res.data);
       return freshToken;
     } else {
       handleSessionFailure();
