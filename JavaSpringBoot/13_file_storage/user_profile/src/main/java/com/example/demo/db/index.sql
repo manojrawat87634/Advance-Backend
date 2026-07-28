@@ -49,3 +49,20 @@ CREATE TABLE user_sessions (
         REFERENCES users(id)
         ON DELETE CASCADE
 );
+
+CREATE TABLE user_profiles (
+    user_id BIGINT PRIMARY KEY,
+    profile_media_id VARCHAR(64),
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    phone_number VARCHAR(20),
+    bio VARCHAR(500),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP 
+        ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) 
+        REFERENCES users(id) 
+        ON DELETE CASCADE
+);
+
+CREATE INDEX idx_user_profiles_media_id ON user_profiles (profile_media_id);

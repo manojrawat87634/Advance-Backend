@@ -1,27 +1,39 @@
 package com.example.demo.services.auth;
 
+import java.nio.charset.StandardCharsets;
+import java.security.Key;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
 
 import com.example.demo.dto.auth.AuthRequest;
 import com.example.demo.helpers.RequestUtils;
 import com.example.demo.models.auth.UserModel;
+import com.example.demo.models.auth.UserProfile;
 import com.example.demo.models.auth.UserSessionModel;
 import com.example.demo.models.auth.role.RoleModel;
 import com.example.demo.models.auth.role.UserRoleModel;
+import com.example.demo.repo.auth.UserProfileRepository;
 import com.example.demo.repo.auth.UserRepo;
 import com.example.demo.repo.auth.UserSessionRepo;
 import com.example.demo.repo.auth.role.RoleRepo;
 import com.example.demo.repo.auth.role.UserRoleRepo;
 import com.example.demo.util.JwtUtil;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
 
 @Service
@@ -33,15 +45,18 @@ public class UserAuthService {
     private final UserRoleRepo userRoleRepo;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final UserProfileRepository userProfileRepository;
 
     public UserAuthService(
             UserRepo userRepo,
             UserSessionRepo sessionRepo,
+            UserProfileRepository userProfileRepository,
             RoleRepo roleRepo,
             UserRoleRepo userRoleRepo,
             PasswordEncoder passwordEncoder,
             JwtUtil jwtUtil) {
         this.userRepo = userRepo;
+        this.userProfileRepository = userProfileRepository;
         this.sessionRepo = sessionRepo;
         this.roleRepo = roleRepo;
         this.userRoleRepo = userRoleRepo;
@@ -49,9 +64,18 @@ public class UserAuthService {
         this.jwtUtil = jwtUtil;
     }
 
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+
+    @Value("${media.service.url:http://localhost:8081}")
+    private String mediaServiceUrl;
+    // @Autowired
+    // private MediaServiceClient mediaServiceClient;
+
     /**
      * Session validation & user info retrieval.
-     * Takes the incoming refresh token, validates the session, updates last activity,
+     * Takes the incoming refresh token, validates the session, updates last
+     * activity,
      * generates a fresh access token, and returns user profile details.
      */
     @Transactional
@@ -90,8 +114,7 @@ public class UserAuthService {
                 user.getId(),
                 user.getEmail(),
                 session.getSessionId(),
-                roles
-        );
+                roles);
 
         // 5. Structure user object response to match frontend expectations
         Map<String, Object> userMap = new HashMap<>();
@@ -171,6 +194,33 @@ public class UserAuthService {
         return Map.of(
                 "accessToken", accessToken,
                 "refreshToken", refreshToken);
+    }
+
+    @Transactional
+    public void updateUserProfileImage(Long userId, String mediaId, String bearerToken) {
+
+        // 1. Forward user's existing Bearer Access Token directly to Media Service
+        RestClient restClient = RestClient.builder()
+                .baseUrl(mediaServiceUrl)
+                .build();
+
+        restClient.post()
+                .uri("/api/v1/media/{mediaId}/confirm", mediaId)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken) // Simply forward the incoming token!
+                .retrieve()
+                .toBodilessEntity();
+
+        // 2. Find existing profile OR create a new profile linked to User
+        UserProfile profile = userProfileRepository.findById(userId)
+                .orElseGet(() -> {
+                    UserModel user = userRepo.findById(userId)
+                            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                    return new UserProfile(user, null);
+                });
+
+        // 3. Update and save profile
+        profile.setProfileMediaId(mediaId);
+        userProfileRepository.save(profile);
     }
 
     @Transactional
