@@ -22,47 +22,53 @@ public class JwtFilter extends OncePerRequestFilter {
 
     @Autowired
     private UserDetailsService userDetailsService;
+@Override
+protected void doFilterInternal(
+        HttpServletRequest request,
+        HttpServletResponse response,
+        FilterChain chain)
+        throws IOException, ServletException {
 
-    @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain chain)
-            throws IOException, ServletException {
-                String header = request.getHeader("Authorization");
-                System.out.println("hiii");
+    // 1. Skip preflight OPTIONS requests from CORS
+    if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+        response.setStatus(HttpServletResponse.SC_OK);
+        chain.doFilter(request, response);
+        return;
+    }
 
-        if (header == null || !header.startsWith("Bearer ")) {
+    String header = request.getHeader("Authorization");
+    System.out.println("hiii");
+    System.out.println(header);
+
+    if (header == null || !header.startsWith("Bearer ")) {
+        chain.doFilter(request, response);
+        return;
+    }
+
+    String token = header.substring(7);
+
+    try {
+        if (!jwtUtil.validate(token)) {
             chain.doFilter(request, response);
             return;
         }
 
-        String token = header.substring(7);
-                System.out.println(token);
+        String email = jwtUtil.extractAllClaims(token).get("email", String.class);
 
-        try {
-            if (!jwtUtil.validate(token)) {
-                chain.doFilter(request, response);
-                return;
-            }
-String email = jwtUtil.extractAllClaims(token).get("email", String.class);
-                System.out.println(email);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-            UserDetails userDetails =
-                    userDetailsService.loadUserByUsername(email);
+        UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities());
 
-            UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(auth);
 
-            SecurityContextHolder.getContext().setAuthentication(auth);
-
-        } catch (Exception e) {
-            SecurityContextHolder.clearContext();
-        }
-
-        chain.doFilter(request, response);
+    } catch (Exception e) {
+        SecurityContextHolder.clearContext();
     }
+
+    chain.doFilter(request, response);
 }
+  }

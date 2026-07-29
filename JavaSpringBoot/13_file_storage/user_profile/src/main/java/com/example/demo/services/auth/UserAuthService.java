@@ -15,9 +15,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
 
 import com.example.demo.dto.auth.AuthRequest;
+import com.example.demo.dto.mediaDto.PresignRequestDto;
+import com.example.demo.dto.mediaDto.PresignResponseDto;
 import com.example.demo.helpers.RequestUtils;
 import com.example.demo.models.auth.UserModel;
 import com.example.demo.models.auth.UserProfile;
@@ -30,7 +34,8 @@ import com.example.demo.repo.auth.UserSessionRepo;
 import com.example.demo.repo.auth.role.RoleRepo;
 import com.example.demo.repo.auth.role.UserRoleRepo;
 import com.example.demo.util.JwtUtil;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -38,7 +43,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @Service
 public class UserAuthService {
-
+    private static final Logger log = LoggerFactory.getLogger(UserAuthService.class);
     private final UserRepo userRepo;
     private final UserSessionRepo sessionRepo;
     private final RoleRepo roleRepo;
@@ -196,55 +201,85 @@ public class UserAuthService {
                 "refreshToken", refreshToken);
     }
 
+ // STEP 1: Forward user's Bearer token to Media Service /api/v1/media/presign-upload
+    public PresignResponseDto getPresignedUrlFromMediaService(PresignRequestDto request, String bearerToken) {
+        log.info("===> [STEP 1] Presign Request Initiated");
+        log.info("Target URL: {}/api/v1/media/presign-upload", mediaServiceUrl);
+        log.info("Request Body Payload -> fileName: '{}', mimeType: '{}', fileSize: {}", 
+                 request.getFileName(), request.getMimeType(), request.getFileSize());
+        log.info("Authorization Header present: {}", bearerToken != null ? "YES" : "NO");
+
+        try {
+            RestClient restClient = RestClient.builder()
+                    .baseUrl(mediaServiceUrl)
+                    .build();
+
+            PresignResponseDto response = restClient.post()
+                    .uri("/api/v1/media/presign-upload")
+                    .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                    .body(request)
+                    .retrieve()
+                    .body(PresignResponseDto.class);
+
+            log.info("===> [STEP 1 SUCCESS] Received Media ID: {}", response != null ? response.getMediaId() : "NULL");
+            return response;
+
+        } catch (HttpClientErrorException e) {
+            log.error("===> [STEP 1 ERROR] Media Service returned Client Error status: {} - Body: {}", 
+                      e.getStatusCode(), e.getResponseBodyAsString());
+            throw e;
+        } catch (HttpServerErrorException e) {
+            log.error("===> [STEP 1 ERROR] Media Service returned Server Error status: {} - Body: {}", 
+                      e.getStatusCode(), e.getResponseBodyAsString());
+            throw e;
+        } catch (Exception e) {
+            log.error("===> [STEP 1 ERROR] Unexpected error while calling Media Service: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    // STEP 3: Forward user's Bearer token to Media Service /api/v1/media/{mediaId}/confirm
     @Transactional
     public void updateUserProfileImage(Long userId, String mediaId, String bearerToken) {
+        log.info("===> [STEP 3] Update Profile Image Initiated for User ID: {}, Media ID: {}", userId, mediaId);
+        log.info("Target URL: {}/api/v1/media/{}/confirm", mediaServiceUrl, mediaId);
 
-        // 1. Forward user's existing Bearer Access Token directly to Media Service
-        RestClient restClient = RestClient.builder()
-                .baseUrl(mediaServiceUrl)
-                .build();
+        try {
+            RestClient restClient = RestClient.builder()
+                    .baseUrl(mediaServiceUrl)
+                    .build();
 
-        restClient.post()
-                .uri("/api/v1/media/{mediaId}/confirm", mediaId)
-                .header(HttpHeaders.AUTHORIZATION, bearerToken) // Simply forward the incoming token!
-                .retrieve()
-                .toBodilessEntity();
+            restClient.post()
+                    .uri("/api/v1/media/{mediaId}/confirm", mediaId)
+                    .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                    .retrieve()
+                    .toBodilessEntity();
 
-        // 2. Find existing profile OR create a new profile linked to User
+            log.info("===> [STEP 3 SUCCESS] Media Service confirmed upload for Media ID: {}", mediaId);
+
+        } catch (HttpClientErrorException e) {
+            log.error("===> [STEP 3 ERROR] Media Service confirmation failed status: {} - Body: {}", 
+                      e.getStatusCode(), e.getResponseBodyAsString());
+            throw e;
+        } catch (Exception e) {
+            log.error("===> [STEP 3 ERROR] Failed to confirm media upload: {}", e.getMessage(), e);
+            throw e;
+        }
+
+        // Save mediaId to user profile database
+        log.info("Saving mediaId: {} to UserProfile DB for userId: {}", mediaId, userId);
         UserProfile profile = userProfileRepository.findById(userId)
                 .orElseGet(() -> {
+                    log.warn("UserProfile not found for userId: {}. Creating a new record...", userId);
                     UserModel user = userRepo.findById(userId)
                             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
                     return new UserProfile(user, null);
                 });
 
-        // 3. Update and save profile
         profile.setProfileMediaId(mediaId);
         userProfileRepository.save(profile);
+        log.info("===> [STEP 3 COMPLETE] Profile successfully updated in database for userId: {}", userId);
     }
-
-
-
-    @Transactional
-public Map<String, Object> getPresignedUploadUrl(String fileName, String mimeType, Long fileSize, String bearerToken) {
-    RestClient restClient = RestClient.builder()
-            .baseUrl(mediaServiceUrl)
-            .build();
-
-    Map<String, Object> requestBody = Map.of(
-            "fileName", fileName,
-            "mimeType", mimeType,
-            "fileSize", fileSize
-    );
-
-    // Call Media Service /api/v1/media/presign-upload behind the scenes
-    return restClient.post()
-            .uri("/api/v1/media/presign-upload")
-            .header(HttpHeaders.AUTHORIZATION, bearerToken)
-            .body(requestBody)
-            .retrieve()
-            .body(Map.class);
-}
     @Transactional
     public void logout(Long sessionId) {
         UserSessionModel session = sessionRepo.findBySessionId(sessionId)

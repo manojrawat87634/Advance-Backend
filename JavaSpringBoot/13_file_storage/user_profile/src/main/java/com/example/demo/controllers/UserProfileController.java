@@ -1,22 +1,16 @@
 package com.example.demo.controllers;
 
-import java.util.Map;
-
+import com.example.demo.dto.auth.ProfileImageUpdateRequest;
+import com.example.demo.dto.mediaDto.PresignRequestDto;
+import com.example.demo.dto.mediaDto.PresignResponseDto;
+import com.example.demo.services.auth.UserAuthService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import com.example.demo.dto.auth.AuthRequest;
-import com.example.demo.dto.auth.ProfileImageUpdateRequest;
-import com.example.demo.services.auth.UserAuthService;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
-
-/**
- * UserProfileController
- */
+import java.util.Map;
 
 @RestController
 @RequestMapping("/user-profile")
@@ -25,44 +19,38 @@ public class UserProfileController {
     @Autowired
     private UserAuthService userAuthService;
 
-    @GetMapping("/get-user-info")
-    public ResponseEntity<?> updateUserProfileImage(
-            @Valid @RequestBody AuthRequest request) {
-
-
-        return ResponseEntity.ok(
-                Map.of("message", "User registered successfully!"));
+    // STEP 1: Frontend asks for Presigned URL (Proxy to Media Service)
+    @PostMapping("/presign-avatar")
+    public ResponseEntity<PresignResponseDto> getPresignedUrl(
+            @Valid @RequestBody PresignRequestDto request,
+            @RequestHeader("Authorization") String bearerToken) {
+                System.out.println("hello");
+        PresignResponseDto response = userAuthService.getPresignedUrlFromMediaService(request, bearerToken);
+        System.out.print(response);
+        return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/update-profile-image")
-public ResponseEntity<?> updateUserProfileImage(
-        @Valid @RequestBody ProfileImageUpdateRequest request,
-        @RequestHeader("Authorization") String bearerToken, // Captures "Bearer <user_access_token>"
-        Authentication authentication) {
+    // STEP 3: Frontend sends mediaId to Main Backend to update profile
+    @PostMapping("/update-image")
+    public ResponseEntity<?> updateProfileImage(
+            @Valid @RequestBody ProfileImageUpdateRequest request,
+            @RequestHeader("Authorization") String bearerToken,
+            Authentication authentication) {
 
-    // Extract user ID from the Spring Security context
-    Long userId = Long.parseLong((String) authentication.getPrincipal());
+        Long userId = Long.parseLong((String) authentication.getPrincipal());
+        userAuthService.updateUserProfileImage(userId, request.getMediaId(), bearerToken);
 
-    // Pass the existing bearerToken straight through
-    userAuthService.updateUserProfileImage(userId, request.getMediaId(), bearerToken);
+        return ResponseEntity.ok(Map.of("message", "Profile image updated successfully!"));
+    }
 
-    return ResponseEntity.ok(
-            Map.of("message", "Profile Image Updated successfully!"));
-}
+    // Fetch profile information
+    // @GetMapping("/me")
+    // public ResponseEntity<?> getUserInfo(Authentication authentication) {
+    //     Long userId = Long.parseLong((String) authentication.getPrincipal());
+    //     // return ResponseEntity.ok(userAuthService.getUserProfile(userId));
+    // }
 
-@PostMapping("/presign-profile-image")
-public ResponseEntity<?> getPresignedProfileImage(
-        @RequestBody Map<String, Object> request,
-        @RequestHeader("Authorization") String bearerToken) {
-
-    String fileName = (String) request.get("fileName");
-    String mimeType = (String) request.get("mimeType");
-    Long fileSize = Long.parseLong(request.get("fileSize").toString());
-
-    Map<String, Object> response = userAuthService.getPresignedUploadUrl(fileName, mimeType, fileSize, bearerToken);
-    return ResponseEntity.ok(response);
-}
-
+    // Logout endpoint
     @PostMapping("/logout")
     public ResponseEntity<String> logout(@RequestParam Long sessionId) {
         userAuthService.logout(sessionId);
