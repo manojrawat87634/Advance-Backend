@@ -49,6 +49,20 @@ public ResponseEntity<?> updateUserProfileImage(
     return ResponseEntity.ok(
             Map.of("message", "Profile Image Updated successfully!"));
 }
+
+@PostMapping("/presign-profile-image")
+public ResponseEntity<?> getPresignedProfileImage(
+        @RequestBody Map<String, Object> request,
+        @RequestHeader("Authorization") String bearerToken) {
+
+    String fileName = (String) request.get("fileName");
+    String mimeType = (String) request.get("mimeType");
+    Long fileSize = Long.parseLong(request.get("fileSize").toString());
+
+    Map<String, Object> response = userAuthService.getPresignedUploadUrl(fileName, mimeType, fileSize, bearerToken);
+    return ResponseEntity.ok(response);
+}
+
     @PostMapping("/logout")
     public ResponseEntity<String> logout(@RequestParam Long sessionId) {
         userAuthService.logout(sessionId);

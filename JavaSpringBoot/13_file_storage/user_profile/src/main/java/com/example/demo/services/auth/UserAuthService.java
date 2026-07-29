@@ -223,6 +223,28 @@ public class UserAuthService {
         userProfileRepository.save(profile);
     }
 
+
+
+    @Transactional
+public Map<String, Object> getPresignedUploadUrl(String fileName, String mimeType, Long fileSize, String bearerToken) {
+    RestClient restClient = RestClient.builder()
+            .baseUrl(mediaServiceUrl)
+            .build();
+
+    Map<String, Object> requestBody = Map.of(
+            "fileName", fileName,
+            "mimeType", mimeType,
+            "fileSize", fileSize
+    );
+
+    // Call Media Service /api/v1/media/presign-upload behind the scenes
+    return restClient.post()
+            .uri("/api/v1/media/presign-upload")
+            .header(HttpHeaders.AUTHORIZATION, bearerToken)
+            .body(requestBody)
+            .retrieve()
+            .body(Map.class);
+}
     @Transactional
     public void logout(Long sessionId) {
         UserSessionModel session = sessionRepo.findBySessionId(sessionId)
