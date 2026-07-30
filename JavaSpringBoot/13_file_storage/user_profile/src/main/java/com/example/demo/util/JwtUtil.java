@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import io.jsonwebtoken.Claims;
@@ -15,15 +16,14 @@ import io.jsonwebtoken.security.Keys;
 @Component
 public class JwtUtil {
 
-    private static final long ACCESS_TOKEN_EXPIRY =
-            1000L * 60 * 15; // 15 minutes
+   @Value("${jwt.access-token-expiry:900000}") // Default 15 mins (1000 * 60 * 15)
+    private long ACCESS_TOKEN_EXPIRY; // 15 minutes
 
-    private static final long REFRESH_TOKEN_EXPIRY =
-            1000L * 60 * 60 * 24 * 7; // 7 days
+   @Value("${jwt.refresh-token-expiry:900000}") // Default 15 mins (1000 * 60 * 15)
+    private long REFRESH_TOKEN_EXPIRY; // 7 days
 
-    private final String SECRET =
-            "mysupersecretkeymysupersecretkeymysupersecretkey123";
-
+    @Value("${jwt.secret}")
+    private String SECRET;
     private SecretKey getSignKey() {
         return Keys.hmacShaKeyFor(SECRET.getBytes());
     }
