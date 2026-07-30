@@ -29,15 +29,12 @@ public class JwtUtil {
     }
 
     // ---------------- ACCESS TOKEN ----------------
-
     public String generateAccessToken(
         Long userId,
         String email,
         String sessionId,
         List<String> roles) {
-
     Date now = new Date();
-
     return Jwts.builder()
             .subject(String.valueOf(userId))
             .claim("email", email)
@@ -48,13 +45,9 @@ public class JwtUtil {
             .signWith(getSignKey())
             .compact();
 }
-
     // ---------------- REFRESH TOKEN ----------------
-
     public String generateRefreshToken(String sessionId) {
-
         Date now = new Date();
-
         return Jwts.builder()
                 .claim("sid", sessionId)
                 .claim("jti", UUID.randomUUID().toString())
@@ -62,10 +55,9 @@ public class JwtUtil {
                 .expiration(new Date(now.getTime() + REFRESH_TOKEN_EXPIRY))
                 .signWith(getSignKey())
                 .compact();
-    }
+}
 
     // ---------------- COMMON ----------------
-
     public Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getSignKey())

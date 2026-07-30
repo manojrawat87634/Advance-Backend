@@ -36,8 +36,9 @@ public class UserProfileController {
             @Valid @RequestBody ProfileImageUpdateRequest request,
             @RequestHeader("Authorization") String bearerToken,
             Authentication authentication) {
-
-        Long userId = Long.parseLong((String) authentication.getPrincipal());
+                System.out.println("----------39-------------");
+                Long userId = Long.parseLong((String) authentication.getPrincipal());
+                System.out.println(userId);
         userAuthService.updateUserProfileImage(userId, request.getMediaId(), bearerToken);
 
         return ResponseEntity.ok(Map.of("message", "Profile image updated successfully!"));

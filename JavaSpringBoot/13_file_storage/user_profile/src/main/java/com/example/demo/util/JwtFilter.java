@@ -37,8 +37,7 @@ protected void doFilterInternal(
     }
 
     String header = request.getHeader("Authorization");
-    System.out.println("hiii");
-    System.out.println(header);
+
 
     if (header == null || !header.startsWith("Bearer ")) {
         chain.doFilter(request, response);
@@ -53,16 +52,20 @@ protected void doFilterInternal(
             return;
         }
 
-        String email = jwtUtil.extractAllClaims(token).get("email", String.class);
+        // String email = jwtUtil.extractAllClaims(token).get("email", String.class);
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+        // UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+        // String userIdStr = jwtUtil.extractAllClaims(token).getSubject();
+        // UserDetails userDetails = userDetailsService.loadUserByUsername(userIdStr);
 
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities());
-
+            String userIdStr = jwtUtil.extractAllClaims(token).getSubject();
+    String email = jwtUtil.extractAllClaims(token).get("email", String.class);
+    UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+    UsernamePasswordAuthenticationToken auth =
+        new UsernamePasswordAuthenticationToken(
+                userIdStr,
+                null,
+                userDetails.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(auth);
 
     } catch (Exception e) {

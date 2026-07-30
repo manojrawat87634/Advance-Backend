@@ -1,6 +1,5 @@
 package com.example.demo.models.auth;
 
-
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -12,8 +11,8 @@ public class UserProfile {
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "profile_media_id", length = 64)
-    private String profileMediaId;
+    @Column(name = "profile_media_id")
+    private Long profileMediaId;
 
     @Column(name = "first_name", length = 100)
     private String firstName;
@@ -34,16 +33,14 @@ public class UserProfile {
     private LocalDateTime updatedAt;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
+    @MapsId // 👈 Tells Hibernate: derive "userId" directly from "user.id"
     @JoinColumn(name = "user_id")
     private UserModel user;
 
     public UserProfile() {}
 
-    public UserProfile(UserModel user, String profileMediaId) {
+    public UserProfile(UserModel user) {
         this.user = user;
-        this.userId = user.getId();
-        this.profileMediaId = profileMediaId;
     }
 
     @PrePersist
@@ -59,10 +56,9 @@ public class UserProfile {
 
     // Getters and Setters
     public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
 
-    public String getProfileMediaId() { return profileMediaId; }
-    public void setProfileMediaId(String profileMediaId) { this.profileMediaId = profileMediaId; }
+    public Long getProfileMediaId() { return profileMediaId; }
+    public void setProfileMediaId(Long profileMediaId) { this.profileMediaId = profileMediaId; }
 
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
@@ -80,5 +76,7 @@ public class UserProfile {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 
     public UserModel getUser() { return user; }
-    public void setUser(UserModel user) { this.user = user; }
+    public void setUser(UserModel user) { 
+        this.user = user; 
+    }
 }

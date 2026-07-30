@@ -1,21 +1,21 @@
 package com.example.demo.dto.auth;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 /**
- * ProfileImageUpdate
+ * ProfileImageUpdateRequest
  */
 public class ProfileImageUpdateRequest {
     
-    @NotBlank(message = "Media ID is required")
-    private String mediaId;
+    @NotNull(message = "Media ID is required")
+    private Long mediaId; // 👈 Changed String to Long
 
     public ProfileImageUpdateRequest() {}
 
-    public ProfileImageUpdateRequest(String mediaId) {
+    public ProfileImageUpdateRequest(Long mediaId) {
         this.mediaId = mediaId;
     }
 
-    public String getMediaId() { return mediaId; }
-    public void setMediaId(String mediaId) { this.mediaId = mediaId; }
+    public Long getMediaId() { return mediaId; }
+    public void setMediaId(Long mediaId) { this.mediaId = mediaId; }
 }

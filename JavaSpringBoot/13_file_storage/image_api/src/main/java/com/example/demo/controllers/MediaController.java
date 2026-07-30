@@ -1,4 +1,5 @@
 package com.example.demo.controllers;
+
 import com.example.demo.models.meta_data.MediaMetadata;
 import com.example.demo.repo.meta_data.MediaMetadataRepository;
 import com.example.demo.services.S3StorageService;
@@ -6,16 +7,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.Map;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/media")
 public class MediaController {
+
     @Autowired
     private MediaMetadataRepository repository;
+
     @Autowired
     private S3StorageService s3Service;
+
     // -------------------------------------------------------------------
     // 1. GENERATE PRESIGNED UPLOAD URL
     // -------------------------------------------------------------------
@@ -23,21 +28,29 @@ public class MediaController {
     public ResponseEntity<?> getPresignedUploadUrl(
             @RequestBody UploadRequest request,
             Authentication authentication) {
+
         // Extracted automatically from JwtFilter (targetUserId)
         String userId = (String) authentication.getPrincipal();
-        String mediaId = "med_" + UUID.randomUUID().toString().substring(0, 12);
-        String s3Key = "uploads/user_" + userId + "/" + mediaId + "-" + request.getFileName();
-        // Save initial record as PENDING
-        MediaMetadata metadata = new MediaMetadata(
-                mediaId, userId, s3Key, request.getMimeType(), request.getFileSize(), MediaMetadata.MediaStatus.PENDING
-        );
-        repository.save(metadata);
 
-        // Generate short-lived S3 PUT URL (e.g., 5 minutes)
+        // Unique file name suffix to avoid collisions in storage
+        String uniqueFilePrefix = UUID.randomUUID().toString().substring(0, 8);
+        String s3Key = "uploads/user_" + userId + "/" + uniqueFilePrefix + "-" + request.getFileName();
+
+        // Save initial record as PENDING (MySQL auto-generates numeric Long ID)
+        MediaMetadata metadata = new MediaMetadata();
+        metadata.setOwnerId(userId);
+        metadata.setStorageKey(s3Key);
+        metadata.setMimeType(request.getMimeType());
+        metadata.setSizeBytes(request.getFileSize());
+        metadata.setStatus(MediaMetadata.MediaStatus.PENDING);
+
+        MediaMetadata savedMetadata = repository.save(metadata);
+
+        // Generate short-lived S3/MinIO PUT URL (5 minutes)
         String uploadUrl = s3Service.generatePresignedUploadUrl(s3Key, request.getMimeType(), 5);
 
         return ResponseEntity.ok(Map.of(
-                "mediaId", mediaId,
+                "mediaId", savedMetadata.getId(), // ✅ Returns numeric Long ID (e.g., 1, 2, 3)
                 "uploadUrl", uploadUrl,
                 "expiresInMinutes", 5
         ));
@@ -48,7 +61,7 @@ public class MediaController {
     // -------------------------------------------------------------------
     @PostMapping("/{mediaId}/confirm")
     public ResponseEntity<?> confirmUpload(
-            @PathVariable String mediaId,
+            @PathVariable Long mediaId,
             Authentication authentication) {
 
         String userId = (String) authentication.getPrincipal();
@@ -72,7 +85,7 @@ public class MediaController {
     // -------------------------------------------------------------------
     @GetMapping("/{mediaId}/presign-download")
     public ResponseEntity<?> getPresignedDownloadUrl(
-            @PathVariable String mediaId,
+            @PathVariable Long mediaId,
             Authentication authentication) {
 
         MediaMetadata metadata = repository.findById(mediaId)
@@ -82,7 +95,7 @@ public class MediaController {
             return ResponseEntity.badRequest().body("Media upload is not completed yet");
         }
 
-        // Generate short-lived S3 GET URL (e.g., 60 minutes)
+        // Generate short-lived S3 GET URL (60 minutes)
         String downloadUrl = s3Service.generatePresignedDownloadUrl(metadata.getStorageKey(), 60);
 
         return ResponseEntity.ok(Map.of(

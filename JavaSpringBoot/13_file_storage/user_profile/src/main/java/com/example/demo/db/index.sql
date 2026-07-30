@@ -51,8 +51,8 @@ CREATE TABLE user_sessions (
 );
 
 CREATE TABLE user_profiles (
-    user_id BIGINT PRIMARY KEY,
-    profile_media_id VARCHAR(64),
+    user_id BIGINT PRIMARY KEY auto_increment,
+    profile_media_id bigint,
     first_name VARCHAR(100),
     last_name VARCHAR(100),
     phone_number VARCHAR(20),

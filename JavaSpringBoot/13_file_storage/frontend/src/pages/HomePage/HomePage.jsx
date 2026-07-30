@@ -1,7 +1,6 @@
 import React, { useState, useRef, useContext } from 'react';
-import axios from 'axios';
 import { toast } from 'react-hot-toast';
-import { DataContext } from '../../context'; // Adjust import according to your context path
+import { DataContext } from '../../context';
 
 const InstagramAvatarUploader = ({ currentAvatarUrl, onUploadSuccess }) => {
   const [file, setFile] = useState(null);
@@ -9,7 +8,8 @@ const InstagramAvatarUploader = ({ currentAvatarUrl, onUploadSuccess }) => {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
-  const { apiPost } = useContext(DataContext); // Custom helper or instance of Axios with auth header
+  // Consume reusable functions from DataContext
+  const { uploadFileToStorage, apiPost } = useContext(DataContext);
 
   const handleFileChange = (e) => {
     const selected = e.target.files?.[0];
@@ -20,6 +20,7 @@ const InstagramAvatarUploader = ({ currentAvatarUrl, onUploadSuccess }) => {
       return;
     }
 
+    console.log("🖼️ [File Selected]:", selected.name, "| Size:", selected.size, "bytes");
     setFile(selected);
     setPreviewUrl(URL.createObjectURL(selected));
   };
@@ -29,48 +30,30 @@ const InstagramAvatarUploader = ({ currentAvatarUrl, onUploadSuccess }) => {
 
     try {
       setUploading(true);
-      toast.loading('Uploading profile picture...', { id: 'avatar-toast' });
 
-      // =========================================================================
-      // STEP 1: Get presigned upload URL & mediaId from Main Backend
-      // =========================================================================
-      const presignRes = await apiPost('/user-profile/presign-avatar', {
-        fileName: file.name,
-        mimeType: file.type,
-        fileSize: file.size,
-      });
+      // STEP 1 & 2: Get presigned URL + PUT file to storage via Context helper
+      const mediaId = await uploadFileToStorage(file, '/user-profile/presign-avatar');
 
-      const { mediaId, uploadUrl } = presignRes.data || {};
-
-      if (!mediaId || !uploadUrl) {
-        throw new Error('Failed to obtain presigned upload details');
+      if (!mediaId) {
+        console.warn("⚠️ [Avatar Upgrade Aborted]: Storage upload did not return a valid mediaId.");
+        return;
       }
 
-      // =========================================================================
-      // STEP 2: Send raw image binary directly to MinIO (Bypasses Main Backend)
-      // =========================================================================
-      await axios.put(uploadUrl, file, {
-        headers: { 'Content-Type': file.type },
-      });
+      // STEP 3: Attach newly created mediaId to user profile
+      console.log("🔄 [Upload Step 3]: Saving mediaId to user profile backend...");
+      const updateData = await apiPost('/user-profile/update-image', { mediaId });
 
-      // =========================================================================
-      // STEP 3: Send mediaId to Main Backend to confirm and link to User Profile
-      // =========================================================================
-      const updateRes = await apiPost('/user-profile/update-image', {
-        mediaId: mediaId,
-      });
+      console.log("🎉 [Upload Step 3 Result]: Profile response:", updateData);
 
-      toast.success('Profile picture updated successfully!', { id: 'avatar-toast' });
-
-      if (onUploadSuccess) {
-        onUploadSuccess(mediaId, updateRes.data);
+      if (updateData) {
+        toast.success('Profile picture updated!');
+        if (onUploadSuccess) {
+          onUploadSuccess(mediaId, updateData);
+        }
+        setFile(null);
       }
-
-      setFile(null);
     } catch (error) {
-      console.error('Upload error:', error);
-      const msg = error?.response?.data?.message || error.message || 'Failed to update avatar';
-      toast.error(msg, { id: 'avatar-toast' });
+      console.error('💥 [Component Exception]: Upload handler error:', error);
     } finally {
       setUploading(false);
     }
@@ -97,7 +80,7 @@ const InstagramAvatarUploader = ({ currentAvatarUrl, onUploadSuccess }) => {
           </div>
         )}
 
-        {/* Camera Hover Overlay */}
+        {/* Hover Overlay */}
         <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
           <svg className="h-7 w-7 text-white" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 9a3 3 0 100 6 3 3 0 000-6zm0-2a5 5 0 110 10 5 5 0 010-10z" />
@@ -106,7 +89,6 @@ const InstagramAvatarUploader = ({ currentAvatarUrl, onUploadSuccess }) => {
         </div>
       </div>
 
-      {/* Hidden File Input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -115,7 +97,6 @@ const InstagramAvatarUploader = ({ currentAvatarUrl, onUploadSuccess }) => {
         className="hidden"
       />
 
-      {/* Control Buttons */}
       <div className="flex items-center gap-3">
         <button
           type="button"

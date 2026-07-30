@@ -8,8 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -238,48 +236,51 @@ public class UserAuthService {
         }
     }
 
-    // STEP 3: Forward user's Bearer token to Media Service /api/v1/media/{mediaId}/confirm
-    @Transactional
-    public void updateUserProfileImage(Long userId, String mediaId, String bearerToken) {
-        log.info("===> [STEP 3] Update Profile Image Initiated for User ID: {}, Media ID: {}", userId, mediaId);
-        log.info("Target URL: {}/api/v1/media/{}/confirm", mediaServiceUrl, mediaId);
+   // STEP 3: Forward user's Bearer token to Media Service /api/v1/media/{mediaId}/confirm
+@Transactional
+public void updateUserProfileImage(Long userId, Long mediaId, String bearerToken) { // ✅ Change mediaId from String to Long
+    log.info("===> [STEP 3] Update Profile Image Initiated for User ID: {}, Media ID: {}", userId, mediaId);
+    log.info("Target URL: {}/api/v1/media/{}/confirm", mediaServiceUrl, mediaId);
 
-        try {
-            RestClient restClient = RestClient.builder()
-                    .baseUrl(mediaServiceUrl)
-                    .build();
+    try {
+        RestClient restClient = RestClient.builder()
+                .baseUrl(mediaServiceUrl)
+                .build();
 
-            restClient.post()
-                    .uri("/api/v1/media/{mediaId}/confirm", mediaId)
-                    .header(HttpHeaders.AUTHORIZATION, bearerToken)
-                    .retrieve()
-                    .toBodilessEntity();
+        restClient.post()
+                .uri("/api/v1/media/{mediaId}/confirm", mediaId)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                .retrieve()
+                .toBodilessEntity();
 
-            log.info("===> [STEP 3 SUCCESS] Media Service confirmed upload for Media ID: {}", mediaId);
+        log.info("===> [STEP 3 SUCCESS] Media Service confirmed upload for Media ID: {}", mediaId);
 
-        } catch (HttpClientErrorException e) {
-            log.error("===> [STEP 3 ERROR] Media Service confirmation failed status: {} - Body: {}", 
-                      e.getStatusCode(), e.getResponseBodyAsString());
-            throw e;
-        } catch (Exception e) {
-            log.error("===> [STEP 3 ERROR] Failed to confirm media upload: {}", e.getMessage(), e);
-            throw e;
-        }
-
-        // Save mediaId to user profile database
-        log.info("Saving mediaId: {} to UserProfile DB for userId: {}", mediaId, userId);
-        UserProfile profile = userProfileRepository.findById(userId)
-                .orElseGet(() -> {
-                    log.warn("UserProfile not found for userId: {}. Creating a new record...", userId);
-                    UserModel user = userRepo.findById(userId)
-                            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-                    return new UserProfile(user, null);
-                });
-
-        profile.setProfileMediaId(mediaId);
-        userProfileRepository.save(profile);
-        log.info("===> [STEP 3 COMPLETE] Profile successfully updated in database for userId: {}", userId);
+    } catch (HttpClientErrorException e) {
+        log.error("===> [STEP 3 ERROR] Media Service confirmation failed status: {} - Body: {}", 
+                e.getStatusCode(), e.getResponseBodyAsString());
+        throw e;
+    } catch (Exception e) {
+        log.error("===> [STEP 3 ERROR] Failed to confirm media upload: {}", e.getMessage(), e);
+        throw e;
     }
+
+    // Save mediaId to user profile database
+    log.info("Saving mediaId: {} to UserProfile DB for userId: {}", mediaId, userId);
+    UserProfile profile = userProfileRepository.findById(userId)
+            .orElseGet(() -> {
+                log.warn("UserProfile not found for userId: {}. Creating a new record...", userId);
+                UserModel user = userRepo.findById(userId)
+                        .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                
+                UserProfile newProfile = new UserProfile();
+                newProfile.setUser(user); // ✅ Links user entity to generate ID
+                return newProfile;
+            });
+
+    profile.setProfileMediaId(mediaId);
+    userProfileRepository.save(profile); // ✅ Will now succeed!
+    log.info("===> [STEP 3 COMPLETE] Profile successfully updated in database for userId: {}", userId);
+}
     @Transactional
     public void logout(Long sessionId) {
         UserSessionModel session = sessionRepo.findBySessionId(sessionId)

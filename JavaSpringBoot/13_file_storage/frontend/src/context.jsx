@@ -249,10 +249,56 @@ toast.error(message);
     }
   };
 
+
+
+  const uploadFileToStorage = async (file, presignEndpoint) => {
+  console.log("🚀 [Upload Step 1]: Requesting presigned URL for", file.name);
+  
+  // 1. Get presigned URL using your existing apiPost
+  const presignData = await apiPost(presignEndpoint, {
+    fileName: file.name,
+    mimeType: file.type,
+    fileSize: file.size,
+  });
+
+  console.log("📦 [Upload Step 1 Result]: Presign response:", presignData);
+
+  const { mediaId, uploadUrl } = presignData || {};
+  if (!mediaId || !uploadUrl) {
+    console.error("❌ [Upload Step 1 Failed]: Missing mediaId or uploadUrl");
+    return null;
+  }
+
+  // 2. Direct binary upload to S3/MinIO
+  console.log("📡 [Upload Step 2]: Uploading binary directly to storage target...");
+  try {
+    const minioRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+
+    console.log("📥 [Upload Step 2 Result]: MinIO Response Status =", minioRes.status);
+
+    if (!minioRes.ok) {
+      toast.error(`Direct file upload failed (${minioRes.status})`);
+      return null;
+    }
+
+    console.log("✅ [Upload Success]: File uploaded with mediaId:", mediaId);
+    return mediaId;
+  } catch (err) {
+    console.error("❌ [Upload Step 2 Exception]: Network or CORS error during MinIO PUT:", err);
+    toast.error("File transfer failed. Check network or storage CORS config.");
+    return null;
+  }
+};
+
   return (
     <DataContext.Provider
       value={{
         checkSession,
+        uploadFileToStorage,
         apiGet,
         token,
         user,
