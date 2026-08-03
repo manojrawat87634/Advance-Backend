@@ -1,7 +1,7 @@
 package com.example.demo.models.auth.role;
 
 import java.time.LocalDateTime;
-import java.util.List;
+
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,7 +13,8 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RoleModel {
+public class Role {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -24,10 +25,6 @@ public class RoleModel {
     @Column(length = 255)
     private String description;
 
-    @Builder.Default
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    @OneToMany(mappedBy = "role")
-    private List<UserRoleModel> userRoles;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 }

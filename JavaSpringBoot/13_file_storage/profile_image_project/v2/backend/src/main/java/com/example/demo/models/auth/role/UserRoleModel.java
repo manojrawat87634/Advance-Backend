@@ -19,15 +19,21 @@ public class UserRoleModel {
 
     @Id
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private UserModel user;
 
     @Id
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id")
-    private RoleModel role;
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
 
-    @Builder.Default
-    @Column(name = "assigned_at", nullable = false)
-    private LocalDateTime assignedAt = LocalDateTime.now();
+    @Column(name = "assigned_at", nullable = false, updatable = false)
+    private LocalDateTime assignedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.assignedAt == null) {
+            this.assignedAt = LocalDateTime.now();
+        }
+    }
 }
