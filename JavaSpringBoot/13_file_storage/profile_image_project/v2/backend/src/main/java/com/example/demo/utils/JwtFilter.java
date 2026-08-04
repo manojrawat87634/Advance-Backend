@@ -9,6 +9,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.example.demo.services.auth.MyUserDetailService;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,7 +20,7 @@ import jakarta.servlet.http.HttpServletResponse;
 public class JwtFilter extends OncePerRequestFilter {
     @Autowired
     private JwtUtil jwtUtil;
-
+    @Autowired MyUserDetailService myUserDetailService;
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -46,16 +48,10 @@ public class JwtFilter extends OncePerRequestFilter {
                 chain.doFilter(request, response);
                 return;
             }
-
-            // String email = jwtUtil.extractAllClaims(token).get("email", String.class);
-
-            // UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-            // String userIdStr = jwtUtil.extractAllClaims(token).getSubject();
-            // UserDetails userDetails = userDetailsService.loadUserByUsername(userIdStr);
-
+            
             String userIdStr = jwtUtil.extractAllClaims(token).getSubject();
             String email = jwtUtil.extractAllClaims(token).get("email", String.class);
-            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+            UserDetails userDetails = myUserDetailService.loadUserByUsername(email);
             UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                     userIdStr,
                     null,
