@@ -56,4 +56,7 @@ public class UserSessionModel {
     @Builder.Default
     @Column(name = "is_revoked", nullable = false)
     private Boolean isRevoked = false;
+
+    @Column(name = "revoked_at")
+    private LocalDateTime revokedAt; // <--- ADD THIS FIELD
 }

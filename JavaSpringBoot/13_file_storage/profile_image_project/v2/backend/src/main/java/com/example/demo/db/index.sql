@@ -42,4 +42,24 @@ CREATE TABLE user_profiles (
         ON DELETE CASCADE
 );
 
+CREATE TABLE user_sessions (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  session_id VARCHAR(255) NOT NULL,
+  refresh_token TEXT DEFAULT NULL,
+  ip_address VARCHAR(50) DEFAULT NULL,
+  user_agent TEXT DEFAULT NULL,
+  device_name VARCHAR(255) DEFAULT NULL,
+  login_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_activity TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP NOT NULL,
+  is_revoked TINYINT(1) NOT NULL DEFAULT 0,
+  revoked_at DATETIME DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_session_id (session_id),
+  KEY fk_user_sessions_user_id (user_id),
+  CONSTRAINT fk_user_sessions_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);
+
+
 CREATE INDEX idx_user_profiles_media_id ON user_profiles (profile_media_id);
