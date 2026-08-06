@@ -28,6 +28,7 @@ public class UserProfileController {
             Authentication authentication,
             @RequestBody UserProfileModel profileRequest) {
         Long userId = extractUserId(authentication);
+        System.out.println(userId);
         UserProfileModel createdProfile = profileService.createProfile(userId, profileRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdProfile);
     }
