@@ -6,6 +6,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import com.example.demo.models.auth.UserModel;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
 
@@ -40,10 +41,17 @@ public class UserProfileModel {
     private LocalDateTime updatedAt;
 
     // Optional: Shared Primary Key relationship mapping to User entity
-    @OneToOne
-    @MapsId
-    @JoinColumn(name = "user_id", foreignKey = @ForeignKey(foreignKeyDefinition = "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"))
+    // @OneToOne
+    // @MapsId
+    // @JoinColumn(name = "user_id", foreignKey = @ForeignKey(foreignKeyDefinition = "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"))
+    // private UserModel user;
+@OneToOne(fetch = FetchType.LAZY)
+    @MapsId // Tells JPA that userId is both PK and FK referencing User
+    @JoinColumn(name = "user_id")
+    @JsonIgnore
     private UserModel user;
+
+    
 
     // Default Constructor
     public UserProfileModel() {
