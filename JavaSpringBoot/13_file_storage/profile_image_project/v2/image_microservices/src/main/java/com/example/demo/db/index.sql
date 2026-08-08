@@ -1,29 +1,63 @@
--- 1. USERS TABLE
 CREATE TABLE users (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    is_active TINYINT(1) NOT NULL DEFAULT 1,
-    is_email_verified TINYINT(1) NOT NULL DEFAULT 0,
-    is_deleted TINYINT(1) NOT NULL DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    is_email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_users_active_deleted (is_deleted, is_active)
 );
 
--- 2. USER PROFILES TABLE (Clean, no circular media references)
+CREATE TABLE roles (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description VARCHAR(255),
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE user_roles (
+    user_id BIGINT NOT NULL,
+    role_id BIGINT NOT NULL,
+    assigned_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, role_id),
+    CONSTRAINT fk_user_roles_user FOREIGN KEY (user_id) 
+        REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_user_roles_role FOREIGN KEY (role_id) 
+        REFERENCES roles(id) ON DELETE CASCADE
+);
+
 CREATE TABLE user_profiles (
-    user_id BIGINT PRIMARY KEY,
-    first_name VARCHAR(100) NOT NULL,
+    user_id BIGINT PRIMARY KEY, -- Fixed: Removed AUTO_INCREMENT
+    profile_media_id BIGINT,
+    first_name VARCHAR(100),
     last_name VARCHAR(100),
     phone_number VARCHAR(20),
-    bio TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    CONSTRAINT fk_user_profiles_user 
-        FOREIGN KEY (user_id) 
-        REFERENCES users(id) 
-        ON DELETE CASCADE
+    bio VARCHAR(500),
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_user_profiles_user FOREIGN KEY (user_id) 
+        REFERENCES users(id) ON DELETE CASCADE
+        , foreign key (profile_media_id) REFERENCES media_assets(id)
+);
+
+CREATE TABLE user_sessions (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    session_id VARCHAR(128) NOT NULL,
+    refresh_token TEXT DEFAULT NULL,
+    ip_address VARCHAR(45) DEFAULT NULL, -- Fixed: IPv6 safe length
+    user_agent TEXT DEFAULT NULL,
+    device_name VARCHAR(255) DEFAULT NULL,
+    login_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_activity DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    expires_at DATETIME NOT NULL,
+    is_revoked BOOLEAN NOT NULL DEFAULT FALSE,
+    revoked_at DATETIME DEFAULT NULL,
+    UNIQUE KEY uk_session_id (session_id),
+    CONSTRAINT fk_user_sessions_user FOREIGN KEY (user_id) 
+        REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- 3. MEDIA ASSETS TABLE (Polymorphic, Soft-Deletable, Multi-Tenant Ready)
@@ -63,3 +97,5 @@ CREATE TABLE media_assets (
 CREATE INDEX idx_owner_app ON media_assets(owner_id, client_app_id);
 CREATE INDEX idx_entity_lookup ON media_assets(entity_type, entity_id, is_deleted);
 CREATE INDEX idx_owner_visibility ON media_assets(owner_id, visibility, is_deleted);
+
+

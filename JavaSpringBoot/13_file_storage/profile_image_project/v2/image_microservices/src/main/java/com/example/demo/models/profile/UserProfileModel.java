@@ -1,24 +1,35 @@
 package com.example.demo.models.profile;
 
+import java.time.Instant;
 
-import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import com.example.demo.models.auth.UserModel;
+import com.example.demo.models.image.MediaAsset;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import java.time.LocalDateTime;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
-@Table(name = "user_profiles")
+@Table(name = "user_profiles", indexes = {
+    @Index(name = "idx_user_profiles_media_id", columnList = "profile_media_id")
+})
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class UserProfileModel {
+
     @Id
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "profile_media_id")
-    private Long profileMediaId;
+@ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profile_media_id")
+    private MediaAsset profileMedia;
 
     @Column(name = "first_name", length = 100)
     private String firstName;
@@ -34,91 +45,15 @@ public class UserProfileModel {
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
-    // Optional: Shared Primary Key relationship mapping to User entity
-    // @OneToOne
-    // @MapsId
-    // @JoinColumn(name = "user_id", foreignKey = @ForeignKey(foreignKeyDefinition = "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"))
-    // private UserModel user;
-@OneToOne(fetch = FetchType.LAZY)
-    @MapsId // Tells JPA that userId is both PK and FK referencing User
+    @OneToOne(fetch = FetchType.LAZY)
+    @MapsId
     @JoinColumn(name = "user_id")
     @JsonIgnore
     private UserModel user;
-
-    
-
-    // Default Constructor
-    public UserProfileModel() {
-    }
-
-    // Getters and Setters
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
-    public Long getProfileMediaId() {
-        return profileMediaId;
-    }
-
-    public void setProfileMediaId(Long profileMediaId) {
-        this.profileMediaId = profileMediaId;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
-
-    public String getBio() {
-        return bio;
-    }
-
-    public void setBio(String bio) {
-        this.bio = bio;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public UserModel getUser() {
-        return user;
-    }
-
-    public void setUser(UserModel user) {
-        this.user = user;
-    }
 }

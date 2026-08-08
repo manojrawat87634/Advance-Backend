@@ -1,6 +1,7 @@
 package com.example.demo.services.auth;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,8 +25,10 @@ import com.example.demo.helpers.RequestUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
+
 @Service
 public class UserAuthService {
+
     @Autowired 
     private UserRepo userRepo;
     @Autowired 
@@ -52,7 +55,8 @@ public class UserAuthService {
 
         Role role = roleRepo.findByName("student")
                 .orElseThrow(() -> new RuntimeException("Default role not found"));
-                UserRoleModel userRole = new UserRoleModel();
+        
+        UserRoleModel userRole = new UserRoleModel();
         userRole.setUser(user);
         userRole.setRole(role);
         userRoleRepo.save(userRole);
@@ -89,9 +93,7 @@ public class UserAuthService {
         session.setIpAddress(ipAddress);
         session.setUserAgent(userAgent);
         session.setDeviceName(deviceName);
-        session.setLoginAt(LocalDateTime.now());
-        session.setLastActivity(LocalDateTime.now());
-        session.setExpiresAt(LocalDateTime.now().plusDays(7));
+        session.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS)); // Fixed: Instant logic
         session.setIsRevoked(false);
 
         sessionRepo.save(session);
@@ -101,87 +103,87 @@ public class UserAuthService {
                 "refreshToken", refreshToken);    
     }
 
+    @Transactional
+    public Map<String, Object> getUserInfoByRefreshToken(String bearerToken) {
+        if (bearerToken == null || !bearerToken.startsWith("Bearer ")) {
+            throw new RuntimeException("Missing or invalid Authorization header");
+        }
+
+        String oldRefreshToken = bearerToken.substring(7);
+
+        // 1. Fetch active session by refresh token
+        UserSessionModel oldSession = sessionRepo.findByRefreshToken(oldRefreshToken)
+                .orElseThrow(() -> new RuntimeException("Invalid or expired session"));
+
+        // REUSE DETECTION: If an attacker tries to use an already revoked token
+        if (Boolean.TRUE.equals(oldSession.getIsRevoked())) {
+            // Security trigger: Revoke ALL sessions for this user due to suspected breach
+            sessionRepo.revokeAllSessionsByUserId(oldSession.getUser().getId());
+            throw new RuntimeException("Security violation: Refresh token reuse detected. All sessions revoked.");
+        }
+
+        if (oldSession.getExpiresAt().isBefore(Instant.now())) { // Fixed: Instant check
+            throw new RuntimeException("Session has expired");
+        }
+
+        // 2. Fetch associated user
+        UserModel user = oldSession.getUser();
+        if (Boolean.TRUE.equals(user.getIsDeleted()) || Boolean.FALSE.equals(user.getIsActive())) {
+            throw new RuntimeException("User account is disabled or deleted");
+        }
+
+        // 3. REVOKE THE OLD SESSION (Single-use enforcement)
+        oldSession.setIsRevoked(true);
+        oldSession.setRevokedAt(Instant.now()); // Fixed: Set revoked timestamp using Instant
+        oldSession.setExpiresAt(Instant.now()); // Fixed: Instant
+        sessionRepo.save(oldSession);
+
+        // 4. CREATE NEW SESSION & TOKENS (Rotation)
+        String newSessionId = UUID.randomUUID().toString();
+        List<String> roles = userRoleRepo.findRoleNamesByUserId(user.getId());
+
+        String freshAccessToken = jwtUtil.generateAccessToken(
+                user.getId(),
+                user.getEmail(),
+                newSessionId,
+                roles);
+
+        String freshRefreshToken = jwtUtil.generateRefreshToken(newSessionId);
+
+        UserSessionModel newSession = new UserSessionModel();
+        newSession.setUser(user);
+        newSession.setSessionId(newSessionId);
+        newSession.setRefreshToken(freshRefreshToken);
+        newSession.setIpAddress(oldSession.getIpAddress());
+        newSession.setUserAgent(oldSession.getUserAgent());
+        newSession.setDeviceName(oldSession.getDeviceName());
+        newSession.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS)); // Fixed: Instant
+        newSession.setIsRevoked(false);
+
+        sessionRepo.save(newSession);
+
+        // 5. Structure response with BOTH new tokens
+        Map<String, Object> userMap = new HashMap<>();
+        userMap.put("id", user.getId());
+        userMap.put("email", user.getEmail());
+        userMap.put("isEmailVerified", user.getIsEmailVerified());
+        userMap.put("roles", roles);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("accessToken", freshAccessToken);
+        response.put("refreshToken", freshRefreshToken);
+        response.put("user", userMap);
+
+        return response;
+    }
 
     @Transactional
-public Map<String, Object> getUserInfoByRefreshToken(String bearerToken) {
-    if (bearerToken == null || !bearerToken.startsWith("Bearer ")) {
-        throw new RuntimeException("Missing or invalid Authorization header");
-    }
-
-    String oldRefreshToken = bearerToken.substring(7);
-
-    // 1. Fetch active session by refresh token
-    UserSessionModel oldSession = sessionRepo.findByRefreshToken(oldRefreshToken)
-            .orElseThrow(() -> new RuntimeException("Invalid or expired session"));
-
-    // REUSE DETECTION: If an attacker tries to use an already revoked token
-    if (Boolean.TRUE.equals(oldSession.getIsRevoked())) {
-        // Security trigger: Revoke ALL sessions for this user due to suspected breach
-        sessionRepo.revokeAllSessionsByUserId(oldSession.getUser().getId());
-        throw new RuntimeException("Security violation: Refresh token reuse detected. All sessions revoked.");
-    }
-
-    if (oldSession.getExpiresAt().isBefore(LocalDateTime.now())) {
-        throw new RuntimeException("Session has expired");
-    }
-
-    // 2. Fetch associated user
-    UserModel user = oldSession.getUser();
-    if (Boolean.TRUE.equals(user.getIsDeleted()) || Boolean.FALSE.equals(user.getIsActive())) {
-        throw new RuntimeException("User account is disabled or deleted");
-    }
-
-    // 3. REVOKE THE OLD SESSION (Single-use enforcement)
-    oldSession.setIsRevoked(true);
-    oldSession.setExpiresAt(LocalDateTime.now());
-    sessionRepo.save(oldSession);
-
-    // 4. CREATE NEW SESSION & TOKENS (Rotation)
-    String newSessionId = UUID.randomUUID().toString();
-    List<String> roles = userRoleRepo.findRoleNamesByUserId(user.getId());
-
-    String freshAccessToken = jwtUtil.generateAccessToken(
-            user.getId(),
-            user.getEmail(),
-            newSessionId,
-            roles);
-
-    String freshRefreshToken = jwtUtil.generateRefreshToken(newSessionId);
-
-    UserSessionModel newSession = new UserSessionModel();
-    newSession.setUser(user);
-    newSession.setSessionId(newSessionId);
-    newSession.setRefreshToken(freshRefreshToken);
-    newSession.setIpAddress(oldSession.getIpAddress());
-    newSession.setUserAgent(oldSession.getUserAgent());
-    newSession.setDeviceName(oldSession.getDeviceName());
-    newSession.setLoginAt(oldSession.getLoginAt());
-    newSession.setLastActivity(LocalDateTime.now());
-    newSession.setExpiresAt(LocalDateTime.now().plusDays(7));
-    newSession.setIsRevoked(false);
-
-    sessionRepo.save(newSession);
-
-    // 5. Structure response with BOTH new tokens
-    Map<String, Object> userMap = new HashMap<>();
-    userMap.put("id", user.getId());
-    userMap.put("email", user.getEmail());
-    userMap.put("isEmailVerified", user.getIsEmailVerified());
-    userMap.put("roles", roles);
-
-    Map<String, Object> response = new HashMap<>();
-    response.put("accessToken", freshAccessToken);
-    response.put("refreshToken", freshRefreshToken); // MUST return new refresh token
-    response.put("user", userMap);
-
-    return response;
-}
-       @Transactional
-    public void logout(Long sessionId) {
+    public void logout(Long sessionId) { // Fixed: String type to match UUID session string
         UserSessionModel session = sessionRepo.findBySessionId(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
 
         session.setIsRevoked(true);
+        session.setRevokedAt(Instant.now()); // Fixed: Instant
         sessionRepo.save(session);
     }
 }

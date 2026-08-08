@@ -53,8 +53,8 @@ public class UserProfileService {
         if (request.getBio() != null) {
             existingProfile.setBio(request.getBio());
         }
-        if (request.getProfileMediaId() != null) {
-            existingProfile.setProfileMediaId(request.getProfileMediaId());
+        if (request.getProfileMedia() != null) {
+            existingProfile.setProfileMedia(request.getProfileMedia());
         }
 
         return profileRepo.save(existingProfile);

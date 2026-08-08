@@ -1,6 +1,8 @@
 package com.example.demo.services.media;
-
+import java.time.ZoneOffset;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -10,7 +12,9 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.demo.dto.image.InitiateUploadRequest;
 import com.example.demo.dto.image.MediaAssetResponse;
 import com.example.demo.models.image.MediaAsset;
+import com.example.demo.models.profile.UserProfileModel;
 import com.example.demo.repo.image.MediaAssetRepository;
+import com.example.demo.repo.profile.UserProfileRepo;
 
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -31,7 +35,8 @@ public class MediaService {
     private final MediaAssetRepository mediaRepository;
     private final S3Presigner s3Presigner;
     private final S3Client s3Client; // Injected for direct multipart uploads
-
+        @Autowired
+private UserProfileRepo userProfileRepository;
     @Value("${aws.s3.bucket}")
     private String bucketName;
 
@@ -89,6 +94,16 @@ public class MediaService {
 
         MediaAsset savedAsset = mediaRepository.save(asset);
 
+        if ("PROFILE_AVATAR".equalsIgnoreCase(entityType)) {
+                UserProfileModel profile = userProfileRepository.findById(ownerId)
+                        .orElseGet(() -> {
+                                UserProfileModel newProfile = new UserProfileModel();
+                                newProfile.setUserId(ownerId);
+                                return newProfile;
+                        });
+                profile.setProfileMedia(savedAsset);
+                userProfileRepository.save(profile);
+        }
         return mapToResponse(savedAsset, null, null);
     }
 
@@ -164,7 +179,7 @@ public class MediaService {
         return mapToResponse(asset, null, accessUrl);
     }
 
-   private MediaAssetResponse mapToResponse(MediaAsset asset, String uploadUrl, String accessUrl) {
+ private MediaAssetResponse mapToResponse(MediaAsset asset, String uploadUrl, String accessUrl) {
     return new MediaAssetResponse(
             asset.getId(),
             asset.getOwnerId(),
@@ -179,6 +194,5 @@ public class MediaService {
             accessUrl,
             asset.getCreatedAt()
     );
-
-    }
+}
 }

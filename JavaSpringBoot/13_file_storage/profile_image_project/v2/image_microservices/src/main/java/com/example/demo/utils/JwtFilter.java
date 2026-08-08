@@ -37,9 +37,9 @@ public class JwtFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
             return;
         }
-
+        
         String header = request.getHeader("Authorization");
-
+        
         if (header == null || !header.startsWith("Bearer ")) {
             chain.doFilter(request, response);
             return;
@@ -52,14 +52,11 @@ public class JwtFilter extends OncePerRequestFilter {
                 chain.doFilter(request, response);
                 return;
             }
-            
-
             // Extract claims ONCE
             Claims claims = jwtUtil.extractAllClaims(token);
             String userIdStr = claims.getSubject();
             String email = claims.get("email", String.class);
             String sessionId = claims.get("sid", String.class);
-
             boolean isSessionActive = sessionRepo.existsBySessionIdAndIsRevokedFalse(sessionId);
 
             if (!isSessionActive) {

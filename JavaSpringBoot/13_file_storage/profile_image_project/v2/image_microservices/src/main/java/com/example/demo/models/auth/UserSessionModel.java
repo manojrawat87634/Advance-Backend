@@ -1,6 +1,9 @@
 package com.example.demo.models.auth;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -25,13 +28,13 @@ public class UserSessionModel {
     @JoinColumn(name = "user_id", nullable = false)
     private UserModel user;
 
-    @Column(name = "session_id", nullable = false, unique = true, length = 255)
+    @Column(name = "session_id", nullable = false, unique = true, length = 128)
     private String sessionId;
 
     @Column(name = "refresh_token", columnDefinition = "TEXT")
     private String refreshToken;
 
-    @Column(name = "ip_address", length = 50)
+    @Column(name = "ip_address", length = 45)
     private String ipAddress;
 
     @Column(name = "user_agent", columnDefinition = "TEXT")
@@ -40,31 +43,21 @@ public class UserSessionModel {
     @Column(name = "device_name", length = 255)
     private String deviceName;
 
+    @CreationTimestamp
     @Column(name = "login_at", nullable = false, updatable = false)
-    private LocalDateTime loginAt;
+    private Instant loginAt;
 
+    @UpdateTimestamp
     @Column(name = "last_activity", nullable = false)
-    private LocalDateTime lastActivity;
+    private Instant lastActivity;
 
     @Column(name = "expires_at", nullable = false)
-    private LocalDateTime expiresAt;
+    private Instant expiresAt;
 
     @Builder.Default
     @Column(name = "is_revoked", nullable = false)
     private Boolean isRevoked = false;
 
     @Column(name = "revoked_at")
-    private LocalDateTime revokedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
-        if (this.loginAt == null) this.loginAt = now;
-        if (this.lastActivity == null) this.lastActivity = now;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.lastActivity = LocalDateTime.now();
-    }
+    private Instant revokedAt;
 }
