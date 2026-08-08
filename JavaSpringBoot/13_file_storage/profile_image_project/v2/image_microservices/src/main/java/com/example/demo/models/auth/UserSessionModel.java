@@ -3,26 +3,24 @@ package com.example.demo.models.auth;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 @Entity
-@Table(name = "user_sessions")
+@Table(name = "user_sessions", indexes = {
+    @Index(name = "idx_session_id", columnList = "session_id"),
+    @Index(name = "idx_user_session", columnList = "user_id, is_revoked")
+})
 public class UserSessionModel {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    // Many sessions can belong to one user
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private UserModel user;
@@ -42,13 +40,11 @@ public class UserSessionModel {
     @Column(name = "device_name", length = 255)
     private String deviceName;
 
-    @Builder.Default
-    @Column(name = "login_at", nullable = false)
-    private LocalDateTime loginAt = LocalDateTime.now();
+    @Column(name = "login_at", nullable = false, updatable = false)
+    private LocalDateTime loginAt;
 
-    @Builder.Default
     @Column(name = "last_activity", nullable = false)
-    private LocalDateTime lastActivity = LocalDateTime.now();
+    private LocalDateTime lastActivity;
 
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
@@ -58,5 +54,17 @@ public class UserSessionModel {
     private Boolean isRevoked = false;
 
     @Column(name = "revoked_at")
-    private LocalDateTime revokedAt; // <--- ADD THIS FIELD
+    private LocalDateTime revokedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (this.loginAt == null) this.loginAt = now;
+        if (this.lastActivity == null) this.lastActivity = now;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.lastActivity = LocalDateTime.now();
+    }
 }

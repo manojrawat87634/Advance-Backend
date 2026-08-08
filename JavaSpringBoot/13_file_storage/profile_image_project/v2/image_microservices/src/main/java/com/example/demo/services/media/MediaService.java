@@ -164,20 +164,21 @@ public class MediaService {
         return mapToResponse(asset, null, accessUrl);
     }
 
-    private MediaAssetResponse mapToResponse(MediaAsset asset, String uploadUrl, String accessUrl) {
-        return new MediaAssetResponse(
-                asset.getId(),
-                asset.getOwnerId(),
-                asset.getClientAppId(),
-                asset.getEntityType(),
-                asset.getEntityId(),
-                asset.getFileName(),
-                asset.getMimeType(),
-                asset.getFileSizeBytes(),
-                asset.getVisibility(),
-                uploadUrl,
-                accessUrl,
-                asset.getCreatedAt()
-        );
+   private MediaAssetResponse mapToResponse(MediaAsset asset, String uploadUrl, String accessUrl) {
+    return new MediaAssetResponse(
+            asset.getId(),
+            asset.getOwnerId(),
+            asset.getClientAppId(),
+            asset.getEntityType(),
+            asset.getEntityId(),
+            asset.getFileName(),
+            asset.getMimeType(),
+            asset.getFileSizeBytes(),
+            asset.getVisibility(),
+            uploadUrl,
+            accessUrl,
+            asset.getCreatedAt()
+    );
+
     }
 }
