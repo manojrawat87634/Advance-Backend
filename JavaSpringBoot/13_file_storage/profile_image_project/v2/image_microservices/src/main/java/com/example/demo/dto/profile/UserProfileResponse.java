@@ -1,4 +1,5 @@
 package com.example.demo.dto.profile;
+
 import com.example.demo.models.profile.UserProfileModel;
 import lombok.*;
 
@@ -18,7 +19,7 @@ public class UserProfileResponse {
     private String bio;
     private Instant createdAt;
     private Instant updatedAt;
-    
+
     // Profile image metadata + 5-min presigned URL
     private ProfileMediaDto profileMedia;
 
@@ -37,7 +38,7 @@ public class UserProfileResponse {
 
     public static UserProfileResponse fromEntity(UserProfileModel entity, String presignedUrl) {
         ProfileMediaDto mediaDto = null;
-        
+
         if (entity.getProfileMedia() != null) {
             mediaDto = ProfileMediaDto.builder()
                     .id(entity.getProfileMedia().getId())
