@@ -170,7 +170,7 @@ private UserProfileRepo userProfileRepository;
                 .build();
 
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofSeconds(15))
+                .signatureDuration(Duration.ofSeconds(60*5))
                 .getObjectRequest(getObjectRequest)
                 .build();
 
