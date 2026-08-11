@@ -4,13 +4,14 @@ import React, { createContext, useEffect, useState } from "react";
 import axios from "axios";
 
 import { toast, ToastContainer } from "react-toastify";
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL } from "./config";
+import { useNavigate } from "react-router-dom";
 
 
 export const DataContext = createContext();
 
-const ContextComponent = ({ children }) => {
-    // const navigate = useNavigate();
+const ContextComponent = ({children}) => {
+    const navigate = useNavigate();
     const [token, setToken] = useState(null);
     const [user, setUser] = useState(null);
 
@@ -86,7 +87,7 @@ const ContextComponent = ({ children }) => {
         setToken
       }}
     >
-      {children}
+         {children}
     </DataContext.Provider>
   );
 }

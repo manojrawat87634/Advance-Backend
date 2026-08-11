@@ -2,13 +2,10 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import LoginPage from './pages/auth/login/LoginPage';
 
 function App() {
-  <>
-    <BrowserRouter>
+ return <>
       <Routes>
-
-        <Route path='/' Component={LoginPage}></Route>
+        <Route path='' Component={LoginPage}></Route>
       </Routes>
-    </BrowserRouter>
   </>
 
 }

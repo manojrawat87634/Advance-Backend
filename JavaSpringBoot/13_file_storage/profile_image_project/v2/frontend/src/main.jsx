@@ -6,9 +6,9 @@ import { BrowserRouter } from 'react-router-dom';
 // import ContextComponent from './context.jsx';
 
 createRoot(document.getElementById('root')).render(
+  <BrowserRouter>
   <ContextComponent >
-    <BrowserRouter>
-    <App />
-    </BrowserRouter>
+      <App />
   </ContextComponent>
+    </BrowserRouter>
 )
