@@ -1,7 +1,16 @@
-import React from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Phone, Calendar, Clock, Edit3 } from 'lucide-react';
+import { DataContext } from '../../context';
+import { SiNetdata } from 'react-icons/si';
 
-export const UserProfile = ({ data }) => {
+export const ProfilePage = () => {
+
+    const {apiGet} = useContext(DataContext);
+    const [data, setData] = useState(false);
+
+    useEffect(()=>{
+        apiGet('/api/v1/profile',{}, setData);
+    },[])
   if (!data) return null;
 
   // Clean trailing spaces from names
@@ -83,3 +92,5 @@ export const UserProfile = ({ data }) => {
     </div>
   );
 };
+
+export default ProfilePage;

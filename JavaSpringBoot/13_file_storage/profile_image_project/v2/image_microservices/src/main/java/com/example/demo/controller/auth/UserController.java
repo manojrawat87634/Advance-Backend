@@ -21,7 +21,7 @@ import jakarta.validation.Valid;
 public class UserController {
 
     @Autowired
-      private UserAuthService userAuthService;
+    private UserAuthService userAuthService;
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(
@@ -30,26 +30,33 @@ public class UserController {
         userAuthService.registerUser(request);
 
         return ResponseEntity.ok(
-                Map.of("message", "User registered successfully!")
-        );
+                Map.of("message", "User registered successfully!"));
     }
 
-     @PostMapping("/login")
+    @PostMapping("/login")
     public ResponseEntity<?> login(
             @Valid @RequestBody AuthRequest request,
             HttpServletRequest httpRequest) {
 
-        Map<String, String> response =
-                userAuthService.login(request, httpRequest);
+        Map<String, String> response = userAuthService.login(request, httpRequest);
 
         return ResponseEntity.ok(response);
     }
+@PostMapping("/get-access-token")
+public ResponseEntity<Map<String, Object>> getAccessToken(@RequestBody Map<String, String> body) {
+    String refreshToken = body.get("refreshToken");
+    // Format as "Bearer <token>" so your existing service method works without changes
+    String bearerToken = "Bearer " + refreshToken;
+    
+    Map<String, Object> response = userAuthService.getUserInfoByRefreshToken(bearerToken);
+    return ResponseEntity.ok(response);
+}
 
     @PostMapping("/logout")
-public ResponseEntity<String> logout(@RequestParam Long sessionId) {
-    userAuthService.logout(sessionId);
+    public ResponseEntity<String> logout(@RequestParam Long sessionId) {
+        userAuthService.logout(sessionId);
 
-    return ResponseEntity.ok("Logged out successfully");
-}
+        return ResponseEntity.ok("Logged out successfully");
+    }
 
 }
