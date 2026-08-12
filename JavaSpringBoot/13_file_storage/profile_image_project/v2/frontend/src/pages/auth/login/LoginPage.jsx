@@ -41,7 +41,7 @@ const AuthLinks = () => {
 const LoginPage = () => {
   const navigate = useNavigate();
 
-  const { user, checkSession } = useContext(DataContext);
+  const { user, checkSession, apiPost } = useContext(DataContext);
 
   const loginFields = [
     { name: 'email', type: 'email', label: 'Email Address', placeholder: 'Enter your email', required: true, icon: MdEmail },
@@ -60,16 +60,17 @@ const LoginPage = () => {
   }, []);
 
   const { setToken, setUser } = useContext(DataContext);
-
-  const handleSubmit = async (values, { setSubmitting, resetForm }) => {
-    setSubmitting(true);
-    const res = await axios.post(`${API_BASE_URL}/auth/login`, values);
-    localStorage.setItem("refreshToken", res?.data?.refreshToken);
-    setToken(res.data?.accessToken);
-    setUser(res?.data?.my_user);
-    setSubmitting(false);
-    resetForm();
-    navigate("/home");
+  const handleSubmit = async (values, { setSubmitting, resetForm }) => {  
+    const data = apiPost('/auth/login', values, setSubmitting, ()=>{resetForm});
+    const {accessToken, refreshToken} = data;
+    // setSubmitting(true);
+    // const res = await axios.post(`${API_BASE_URL}/auth/login`, values);
+    // localStorage.setItem("refreshToken", res?.data?.refreshToken);
+    // setToken(res.data?.accessToken);
+    // setUser(res?.data?.my_user);
+    // setSubmitting(false);
+    // resetForm();
+    // navigate("/home");
   }
 
   return <>
