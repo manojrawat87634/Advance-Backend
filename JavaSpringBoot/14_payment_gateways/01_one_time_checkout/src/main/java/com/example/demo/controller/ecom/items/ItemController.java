@@ -14,7 +14,6 @@ import java.util.List;
 public class ItemController {
 
     private final ItemService itemService;
-
     // GET /api/v1/items - Get all active products
     @GetMapping
     public ResponseEntity<List<ItemResponse>> getAllProducts() {
