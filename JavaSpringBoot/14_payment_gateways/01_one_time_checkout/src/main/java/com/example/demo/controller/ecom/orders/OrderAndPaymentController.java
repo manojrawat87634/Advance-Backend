@@ -8,6 +8,7 @@ import com.example.demo.services.ecom.payment.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -27,9 +28,10 @@ public class OrderAndPaymentController {
     @PostMapping("/orders/create")
     public ResponseEntity<?> createOrder(
             @RequestBody CreateOrderRequest request,
-            @RequestHeader("X-User-Id") Long userId) { // Or extract userId from JWT SecurityContext
+            Authentication authentication) { // Or extract userId from JWT SecurityContext
         
         try {
+           Long userId = Long.parseLong(authentication.getPrincipal().toString());
             CreateOrderResponse response = paymentService.createOrder(userId, request.itemId());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {

@@ -159,7 +159,8 @@ const ContextComponent = ({ children }) => {
                 apiPost,
                 setUser,
                 setToken,
-                apiGet
+                apiGet,
+                apiAuthPost
             }}
         >
             {children}
