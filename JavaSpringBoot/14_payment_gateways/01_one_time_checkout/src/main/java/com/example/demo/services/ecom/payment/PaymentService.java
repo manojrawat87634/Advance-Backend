@@ -39,16 +39,13 @@ public class PaymentService {
         // 1. Fetch item to get the price
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Item not found"));
-
         // 2. Prepare Razorpay order payload (amount is already in PAISE in your DB)
         JSONObject orderRequest = new JSONObject();
         orderRequest.put("amount", item.getPrice());
         orderRequest.put("currency", "INR");
         orderRequest.put("receipt", "rcpt_user_" + userId + "_" + System.currentTimeMillis());
-
         // 3. Call Razorpay API
         Order razorpayOrder = razorpayClient.orders.create(orderRequest);
-
         // 4. Save to `orders` table
         OrderModel newOrder = new OrderModel();
         newOrder.setUserId(userId);
@@ -58,7 +55,6 @@ public class PaymentService {
         newOrder.setStatus(OrderModel.OrderStatus.CREATED);
         newOrder.setRazorpayOrderId(razorpayOrder.get("id"));
         OrderModel savedOrder = orderRepository.save(newOrder);
-
         return new CreateOrderResponse(
                 savedOrder.getId(),
                 savedOrder.getRazorpayOrderId(),
