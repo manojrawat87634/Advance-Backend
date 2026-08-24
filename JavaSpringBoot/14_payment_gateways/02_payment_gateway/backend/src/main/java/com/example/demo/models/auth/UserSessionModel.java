@@ -1,39 +1,40 @@
 package com.example.demo.models.auth;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 @Entity
-@Table(name = "user_sessions")
+@Table(name = "user_sessions", indexes = {
+    @Index(name = "idx_session_id", columnList = "session_id"),
+    @Index(name = "idx_user_session", columnList = "user_id, is_revoked")
+})
 public class UserSessionModel {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    // Many sessions can belong to one user
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private UserModel user;
 
-    @Column(name = "session_id", nullable = false, unique = true, length = 255)
+    @Column(name = "session_id", nullable = false, unique = true, length = 128)
     private String sessionId;
 
     @Column(name = "refresh_token", columnDefinition = "TEXT")
     private String refreshToken;
 
-    @Column(name = "ip_address", length = 50)
+    @Column(name = "ip_address", length = 45)
     private String ipAddress;
 
     @Column(name = "user_agent", columnDefinition = "TEXT")
@@ -42,21 +43,21 @@ public class UserSessionModel {
     @Column(name = "device_name", length = 255)
     private String deviceName;
 
-    @Builder.Default
-    @Column(name = "login_at", nullable = false)
-    private LocalDateTime loginAt = LocalDateTime.now();
+    @CreationTimestamp
+    @Column(name = "login_at", nullable = false, updatable = false)
+    private Instant loginAt;
 
-    @Builder.Default
+    @UpdateTimestamp
     @Column(name = "last_activity", nullable = false)
-    private LocalDateTime lastActivity = LocalDateTime.now();
+    private Instant lastActivity;
 
     @Column(name = "expires_at", nullable = false)
-    private LocalDateTime expiresAt;
+    private Instant expiresAt;
 
     @Builder.Default
     @Column(name = "is_revoked", nullable = false)
     private Boolean isRevoked = false;
 
     @Column(name = "revoked_at")
-    private LocalDateTime revokedAt; // <--- ADD THIS FIELD
+    private Instant revokedAt;
 }

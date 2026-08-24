@@ -1,5 +1,6 @@
 package com.example.demo.controller.profile;
 
+import com.example.demo.dto.profile.UserProfileResponse;
 import com.example.demo.models.profile.UserProfileModel;
 import com.example.demo.services.profile.UserProfileService;
 import org.springframework.http.HttpStatus;
@@ -18,7 +19,7 @@ public class UserProfileController {
     }
 
     @GetMapping
-    public ResponseEntity<UserProfileModel> getProfile(Authentication authentication) {
+    public ResponseEntity<UserProfileResponse> getProfile(Authentication authentication) {
         Long userId = extractUserId(authentication);
         return ResponseEntity.ok(profileService.getProfile(userId));
     }
@@ -32,13 +33,12 @@ public class UserProfileController {
         UserProfileModel createdProfile = profileService.createProfile(userId, profileRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdProfile);
     }
-
-    @PutMapping
-    public ResponseEntity<UserProfileModel> updateProfile(
+@PutMapping
+    public ResponseEntity<UserProfileResponse> updateProfile(
             Authentication authentication,
             @RequestBody UserProfileModel profileRequest) {
         Long userId = extractUserId(authentication);
-        UserProfileModel updatedProfile = profileService.updateProfile(userId, profileRequest);
+        UserProfileResponse updatedProfile = profileService.updateProfile(userId, profileRequest);
         return ResponseEntity.ok(updatedProfile);
     }
 
