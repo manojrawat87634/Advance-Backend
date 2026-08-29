@@ -50,11 +50,9 @@ private UserProfileRepo userProfileRepository;
             String entityType,
             String entityId,
             Long ownerId) {
-
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Cannot upload an empty file");
         }
-
         String originalFileName = file.getOriginalFilename();
         String uniqueFileName = UUID.randomUUID() + "-" + originalFileName;
         String fileKey = String.format("apps/%s/%s/%d/%s",
