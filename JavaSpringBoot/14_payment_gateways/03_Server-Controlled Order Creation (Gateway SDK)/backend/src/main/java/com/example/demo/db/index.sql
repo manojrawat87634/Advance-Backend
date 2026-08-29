@@ -99,3 +99,23 @@ CREATE INDEX idx_entity_lookup ON media_assets(entity_type, entity_id, is_delete
 CREATE INDEX idx_owner_visibility ON media_assets(owner_id, visibility, is_deleted);
 
 
+CREATE TABLE notes (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    uploader_id BIGINT NOT NULL,                      -- Creator/Admin who uploaded the notes
+    media_asset_id BIGINT NOT NULL UNIQUE,            -- Points to the PDF/DOCX file in media_assets
+    title VARCHAR(255) NOT NULL,
+    description TEXT DEFAULT NULL,
+    price_in_subunits BIGINT NOT NULL DEFAULT 0,      -- e.g., 29900 = ₹299.00
+    currency VARCHAR(10) NOT NULL DEFAULT 'INR',
+    is_published BOOLEAN NOT NULL DEFAULT TRUE,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_notes_uploader FOREIGN KEY (uploader_id) 
+        REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_notes_media FOREIGN KEY (media_asset_id) 
+        REFERENCES media_assets(id) ON DELETE CASCADE,
+
+    INDEX idx_published_notes (is_published, is_deleted)
+);
