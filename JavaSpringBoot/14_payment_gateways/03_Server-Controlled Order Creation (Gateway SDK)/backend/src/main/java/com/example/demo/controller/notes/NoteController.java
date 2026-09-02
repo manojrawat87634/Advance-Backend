@@ -6,8 +6,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.demo.dto.notes.NoteDto.*;
 import com.example.demo.services.notes.NoteService;
@@ -18,7 +21,6 @@ import com.example.demo.services.notes.NoteService;
 public class NoteController {
 
     private final NoteService noteService;
-
     @PostMapping
     public ResponseEntity<NoteResponse> createNote(
             @RequestHeader("X-User-Id") Long uploaderId,
@@ -26,6 +28,20 @@ public class NoteController {
         NoteResponse response = noteService.createNote(uploaderId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+    @PostMapping(value = "/upload-notes-asset", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+public ResponseEntity<NoteResponse> notesAssetUpload(
+        @RequestPart("file") MultipartFile file,
+        Authentication authentication
+) {
+    Long userId = Long.parseLong(authentication.getPrincipal().toString());
+
+    System.out.println("----------------------------------------");
+    System.out.println("User ID: " + userId);
+
+    NoteResponse response = noteService.uploadNoteAsset(file, userId);
+    return ResponseEntity.status(HttpStatus.CREATED).body(response);
+}
 
     @GetMapping("/{id}")
     public ResponseEntity<NoteResponse> getNoteById(@PathVariable Long id) {

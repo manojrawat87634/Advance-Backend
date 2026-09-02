@@ -37,24 +37,32 @@ const ContextComponent = ({ children }) => {
         }
     }
 
-
     const apiAuthPost = async (endpoint, body = {}, setButton, myFunc = async () => { }) => {
         try {
             setButton?.(true);
             const freshToken = await checkSession();
             if (!freshToken) return null;
 
+            // Construct headers dynamically
+            const headers = {
+                Authorization: `Bearer ${freshToken}`,
+            };
+
+            // Only set application/json if sending standard JSON (NOT FormData)
+            if (!(body instanceof FormData)) {
+                headers["Content-Type"] = "application/json";
+            }
+
             const res = await axios.post(`${API_BASE_URL}${endpoint}`, body, {
-                headers: {
-                    Authorization: `Bearer ${freshToken}`,
-                    "Content-Type": "application/json",
-                },
+                headers,
                 timeout: 10000,
             });
             await myFunc();
             return res.data;
         } catch (error) {
             const data = error?.response?.data;
+            console.log(error);
+            console.log(data);
             const message =
                 data?.error ||
                 data?.message ||
@@ -62,49 +70,47 @@ const ContextComponent = ({ children }) => {
                 error.message ||
                 "Something went wrong.";
             toast.error(message);
-            toast.error(message);
             return null;
         } finally {
-            // setLoading(false);
             setButton?.(false);
         }
     };
 
-     const apiGet = async (endpoint, params = {}, setData, callFunc = () => { }) => {
-    try {
-      console.log(endpoint);
-      const freshToken = await checkSession();
-      if (!freshToken) return null;
+    const apiGet = async (endpoint, params = {}, setData, callFunc = () => { }) => {
+        try {
+            console.log(endpoint);
+            const freshToken = await checkSession();
+            if (!freshToken) return null;
 
-      const res = await axios.get(`${API_BASE_URL}${endpoint}`, {
-        headers: {
-          Authorization: `Bearer ${freshToken}`,
-        },
-        params,
-        timeout: 10000,
-      });
+            const res = await axios.get(`${API_BASE_URL}${endpoint}`, {
+                headers: {
+                    Authorization: `Bearer ${freshToken}`,
+                },
+                params,
+                timeout: 10000,
+            });
 
-      setData(res.data);
-      callFunc();
-      console.log(res.data);
-      return res.data;
-    } catch (error) {
-      console.log(error)
-      checkSession();
-      const message = error?.response?.data?.error || "Something went wrong.";
-      toast.error(message);
-      return null;
-    }
-  };
-
-
+            setData(res.data);
+            callFunc();
+            console.log(res.data);
+            return res.data;
+        } catch (error) {
+            console.log(error)
+            checkSession();
+            const message = error?.response?.data?.error || "Something went wrong.";
+            toast.error(message);
+            return null;
+        }
+    };
 
 
 
 
 
 
-  
+
+
+
 
     const checkSession = async () => {
         try {
@@ -122,7 +128,7 @@ const ContextComponent = ({ children }) => {
                 return token;
             }
             if (isRefreshingRef.current) return token;
-            const res = await apiPost('/auth/get-access-token', { refreshToken }, ()=>{});
+            const res = await apiPost('/auth/get-access-token', { refreshToken }, () => { });
             const { accessToken: freshAccessToken, refreshToken: freshRefreshToken, user: userData } = res;
 
             setToken(freshAccessToken);

@@ -3,6 +3,7 @@ import LoginPage from './pages/auth/login/LoginPage';
 import ProfilePage from './pages/profile/ProfilePage';
 import ProtectedRoute from './components/ProtectedRoutes';
 import Product from './pages/ecom/Product';
+import UploadNotePage from './pages/upload/UploadNotePage';
 
 function App() {
  return <>
@@ -13,9 +14,14 @@ function App() {
               <ProfilePage />
             </ProtectedRoute>
           } />
-         <Route path='//products' element={
+         <Route path='/products' element={
             <ProtectedRoute>
               <Product />
+            </ProtectedRoute>
+          } />
+         <Route path='/upload-notes' element={
+            <ProtectedRoute>
+              <UploadNotePage />
             </ProtectedRoute>
           } />
 
