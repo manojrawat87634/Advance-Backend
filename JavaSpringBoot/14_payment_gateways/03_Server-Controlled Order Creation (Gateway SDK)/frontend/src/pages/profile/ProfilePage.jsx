@@ -38,6 +38,7 @@ export const ProfilePage = () => {
     <div className="max-w-md mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-xl overflow-hidden border border-slate-100 dark:border-slate-800 transition-all">
       {/* Header Banner */}
         <NavLink to={"/products"}>Show Product</NavLink>
+        <NavLink to={"/upload-notes"}>Upload Notes</NavLink>
       <div className="h-28 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 relative" />
       <div className="px-6 pb-6 relative">
         {/* Avatar & Action Button */}

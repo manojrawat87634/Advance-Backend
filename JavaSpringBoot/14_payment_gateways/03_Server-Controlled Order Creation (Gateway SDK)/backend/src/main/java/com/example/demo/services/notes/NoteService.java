@@ -48,7 +48,7 @@ public NoteResponse uploadNoteAsset(MultipartFile file, Long userId) {
             file, 
             "NOTES_APP", 
             "NOTE_PDF", 
-            null, 
+            userId.toString(), 
             userId
     );
 
@@ -60,7 +60,7 @@ public NoteResponse uploadNoteAsset(MultipartFile file, Long userId) {
             .priceInSubunits(null)
             .currency(null)
             .isPublished(false)     // Set to false until details are completed
-            .isDeleted(false)
+            .isDeleted(false).uploaderId(userId)
             .build();
 
     // 3. Save and return mapped response
