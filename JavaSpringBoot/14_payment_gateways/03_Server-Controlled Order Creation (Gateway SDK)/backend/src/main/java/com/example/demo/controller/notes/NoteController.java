@@ -18,16 +18,22 @@ import com.example.demo.services.notes.NoteService;
 @RestController
 @RequestMapping("/api/v1/notes")
 @RequiredArgsConstructor
+// /api/v1/notes/update/5
 public class NoteController {
-
     private final NoteService noteService;
-    @PostMapping
-    public ResponseEntity<NoteResponse> createNote(
-            @RequestHeader("X-User-Id") Long uploaderId,
-            @Valid @RequestBody CreateNoteRequest request) {
-        NoteResponse response = noteService.createNote(uploaderId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
+    @PostMapping("/update/{id}")
+    public ResponseEntity<NoteResponse> updateNote(
+        @PathVariable("id") Long noteId,
+        @Valid @RequestBody UpdateNoteRequest request, 
+        Authentication authentication) {
+    
+    Long userId = Long.parseLong(authentication.getPrincipal().toString());
+    System.out.println("-----------------------------hii------------------------");
+    System.out.print(noteId);
+    NoteResponse response = noteService.updateNoteMetadata(userId, noteId, request);
+    
+    return ResponseEntity.ok(response);
+}
 
     @PostMapping(value = "/upload-notes-asset", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 public ResponseEntity<NoteResponse> notesAssetUpload(

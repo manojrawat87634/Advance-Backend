@@ -4,6 +4,7 @@ import ProfilePage from './pages/profile/ProfilePage';
 import ProtectedRoute from './components/ProtectedRoutes';
 import Product from './pages/ecom/Product';
 import UploadNotePage from './pages/upload/UploadNotePage';
+import UpdateNoteDetails from './pages/upload/UploadNotesDetail';
 
 function App() {
  return <>
@@ -22,6 +23,11 @@ function App() {
          <Route path='/upload-notes' element={
             <ProtectedRoute>
               <UploadNotePage />
+            </ProtectedRoute>
+          } />
+         <Route path='/upload-notes/:id' element={
+            <ProtectedRoute>
+              <UpdateNoteDetails />
             </ProtectedRoute>
           } />
 

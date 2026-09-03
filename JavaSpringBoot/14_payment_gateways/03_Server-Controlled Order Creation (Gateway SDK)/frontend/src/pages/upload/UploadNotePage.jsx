@@ -48,9 +48,11 @@ export const UploadNotePage = () => {
   formData.append('data', jsonBlob);
 
   // Send request using your DataContext helper
-  await apiAuthPost('/api/v1/notes/upload-notes-asset', formData, setLoading, async () => {
-    navigate('/products');
+ const result = await apiAuthPost('/api/v1/notes/upload-notes-asset', formData, setLoading, async (res) => {
+    
   });
+  navigate(`/upload-notes/${result.id}`)
+  console.log(result);
 };
 
 
