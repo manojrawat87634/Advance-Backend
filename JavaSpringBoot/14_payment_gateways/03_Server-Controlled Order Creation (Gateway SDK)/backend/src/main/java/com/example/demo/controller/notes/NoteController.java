@@ -41,10 +41,6 @@ public ResponseEntity<NoteResponse> notesAssetUpload(
         Authentication authentication
 ) {
     Long userId = Long.parseLong(authentication.getPrincipal().toString());
-
-    System.out.println("----------------------------------------");
-    System.out.println("User ID: " + userId);
-
     NoteResponse response = noteService.uploadNoteAsset(file, userId);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
 }

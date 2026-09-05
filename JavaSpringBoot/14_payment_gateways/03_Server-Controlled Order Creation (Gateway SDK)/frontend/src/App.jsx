@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoutes';
 import Product from './pages/ecom/Product';
 import UploadNotePage from './pages/upload/UploadNotePage';
 import UpdateNoteDetails from './pages/upload/UploadNotesDetail';
+import DisplayNotes from './pages/notes/DisplayNotes';
 
 function App() {
  return <>
@@ -23,6 +24,11 @@ function App() {
          <Route path='/upload-notes' element={
             <ProtectedRoute>
               <UploadNotePage />
+            </ProtectedRoute>
+          } />
+         <Route path='/notes' element={
+            <ProtectedRoute>
+              <DisplayNotes />
             </ProtectedRoute>
           } />
          <Route path='/upload-notes/:id' element={
