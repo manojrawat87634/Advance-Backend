@@ -1,7 +1,17 @@
 import React, { useState } from "react";
-import { Calendar, Trash2, Edit3, Tag, CheckCircle2, XCircle, ShoppingCart } from "lucide-react";
+import {
+  Calendar,
+  Trash2,
+  Edit3,
+  Tag,
+  CheckCircle2,
+  XCircle,
+  ShoppingCart,
+  Eye,
+  FileText
+} from "lucide-react";
 
-const NoteCard = ({ note, apiAuthPost, onDelete, onEdit, onBuyNow }) => {
+const NoteCard = ({ note, apiAuthPost, onDelete, onEdit, onBuyNow, onViewNote, isPurchased }) => {
   const [buying, setBuying] = useState(false);
 
   // Handle Delete request
@@ -18,30 +28,83 @@ const NoteCard = ({ note, apiAuthPost, onDelete, onEdit, onBuyNow }) => {
     }
   };
 
+  // Helper to open Razorpay Modal
+  const initializeRazorpayCheckout = (orderData) => {
+    const options = {
+      key: orderData.razorpayKeyId,
+      amount: orderData.amountInSubunits,
+      currency: orderData.currency || "INR",
+      name: "Notes Platform",
+      description: `Purchase: ${note.title || "Note Access"}`,
+      order_id: orderData.gatewayOrderId,
+      handler: async function (response) {
+        try {
+          // Verify payment signature on backend
+          if (apiAuthPost) {
+            await apiAuthPost("/api/payments/verify", {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              noteId: note.id,
+            });
+          }
+          alert("Payment successful! Access granted.");
+          window.location.reload(); // Refresh to reflect purchased state
+        } catch (error) {
+          console.error("Payment verification failed:", error);
+          alert("Payment completed, but verification failed. Please refresh.");
+        } finally {
+          setBuying(false);
+        }
+      },
+      modal: {
+        ondismiss: function () {
+          setBuying(false); // Re-enable button if user closes Razorpay modal
+        },
+      },
+      prefill: {
+        email: note.userEmail || "",
+      },
+      theme: {
+        color: "#4f46e5",
+      },
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+  };
+
   // Handle Buy Now click
   const handleBuyNow = async () => {
+    if (buying) return;
+    setBuying(true);
+
     try {
-      setBuying(true);
       if (onBuyNow) {
         await onBuyNow(note);
+        setBuying(false);
       } else if (apiAuthPost) {
-        // Default checkout API call if onBuyNow isn't explicitly passed
-        await apiAuthPost("/api/v1/checkout", {
+        // Send request to Spring Boot endpoint (POST /api/payments/create-order)
+        const orderData = await apiAuthPost("/api/payments/create-order", {
           noteId: note.id,
-          amountInSubunits: note.priceInSubunits,
-          currency: note.currency,
         });
+
+        if (orderData && orderData.gatewayOrderId) {
+          initializeRazorpayCheckout(orderData);
+        } else {
+          throw new Error("Invalid order response from server");
+        }
       }
     } catch (err) {
       console.error("Failed to initiate purchase:", err);
-    } finally {
+      alert("Unable to process purchase. Please try again.");
       setBuying(false);
     }
   };
 
   // Convert subunits (e.g. 100 paise) to formatted price (₹1.00)
   const formatPrice = (subunits, currency) => {
-    if (subunits === undefined || subunits === null) return "Free";
+    if (subunits === undefined || subunits === null || subunits === 0) return "Free";
     const amount = subunits / 100;
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
@@ -59,6 +122,9 @@ const NoteCard = ({ note, apiAuthPost, onDelete, onEdit, onBuyNow }) => {
       year: "numeric",
     });
   };
+
+  // Check entitlement status passed from parent or note payload
+  const hasAccess = isPurchased || note.isEntitled || note.isOwner;
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
@@ -78,13 +144,15 @@ const NoteCard = ({ note, apiAuthPost, onDelete, onEdit, onBuyNow }) => {
                 <Edit3 className="w-4 h-4" />
               </button>
             )}
-            <button
-              onClick={handleDelete}
-              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              title="Delete note"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {onDelete && (
+              <button
+                onClick={handleDelete}
+                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Delete note"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -122,7 +190,7 @@ const NoteCard = ({ note, apiAuthPost, onDelete, onEdit, onBuyNow }) => {
         </p>
       </div>
 
-      {/* Card Footer: Metadata & Buy Now Button */}
+      {/* Card Footer: Metadata & Dynamic Access/Buy Button */}
       <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
         <div className="flex items-center justify-between text-xs text-slate-400">
           <span className="font-mono">ID: #{note.id}</span>
@@ -135,19 +203,28 @@ const NoteCard = ({ note, apiAuthPost, onDelete, onEdit, onBuyNow }) => {
           )}
         </div>
 
-        {/* Buy Now Button */}
-        <button
-          onClick={handleBuyNow}
-          disabled={buying || !note.isPublished}
-          className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-lg shadow-sm hover:shadow transition-all disabled:bg-slate-300 disabled:cursor-not-allowed"
-        >
-          {buying ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <ShoppingCart className="w-4 h-4" />
-          )}
-          {buying ? "Processing..." : "Buy Now"}
-        </button>
+        {/* Dynamic Action Button */}
+        {hasAccess ? (
+          <button
+            onClick={() => onViewNote && onViewNote(note)}
+            className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-lg shadow-sm hover:shadow transition-all"
+          >
+            <Eye className="w-4 h-4" /> View Note
+          </button>
+        ) : (
+          <button
+            onClick={handleBuyNow}
+            disabled={buying || !note.isPublished}
+            className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-lg shadow-sm hover:shadow transition-all disabled:bg-slate-300 disabled:cursor-not-allowed"
+          >
+            {buying ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <ShoppingCart className="w-4 h-4" />
+            )}
+            {buying ? "Processing..." : "Buy Now"}
+          </button>
+        )}
       </div>
     </div>
   );
