@@ -93,4 +93,41 @@ public class PaymentService {
             razorpayKeyId
         );
     }
+
+
+@Transactional
+    public boolean verifyPayment(
+            Long userId,
+            Long noteId,
+            String razorpayOrderId,
+            String razorpayPaymentId,
+            String razorpaySignature
+    ) {
+        try {
+            // 1. Construct the JSONObject with Razorpay response fields
+            JSONObject options = new JSONObject();
+            options.put("razorpay_order_id", razorpayOrderId);
+            options.put("razorpay_payment_id", razorpayPaymentId);
+            options.put("razorpay_signature", razorpaySignature);
+
+            // 2. Cryptographically verify signature using SDK
+            boolean isSignatureValid = Utils.verifyPaymentSignature(options, razorpaySecret);
+
+            if (!isSignatureValid) {
+                return false;
+            }
+
+            // 3. TODO: Update payment status to SUCCESS in database
+            // e.g., paymentRepository.updateStatus(razorpayOrderId, "SUCCESS");
+
+            // 4. TODO: Grant user access to note
+            // e.g., noteAccessRepository.grantAccess(userId, noteId);
+
+            return true;
+
+        } catch (Exception e) {
+            System.err.println("Razorpay verification failed: " + e.getMessage());
+            return false;
+        }
+    }
 }

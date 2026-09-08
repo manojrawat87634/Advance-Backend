@@ -62,4 +62,40 @@ public class PaymentController {
                     .body(Map.of("error", "An unexpected error occurred during order creation"));
         }
     }
+
+
+
+    @PostMapping("/verify")
+    public ResponseEntity<?> verifyPayment(
+            @RequestBody PaymentVerificationRequest request,
+            Authentication authentication
+    ) {
+        if (request == null || request.razorpay_order_id() == null || request.razorpay_payment_id() == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing required verification details"));
+        }
+
+        try {
+            Long userId = Long.parseLong(authentication.getPrincipal().toString());
+
+            // Delegate HMAC verification and access grant to service
+            boolean isVerified = paymentService.verifyPayment(
+                    userId,
+                    request.noteId(),
+                    request.razorpay_order_id(),
+                    request.razorpay_payment_id(),
+                    request.razorpay_signature()
+            );
+
+            if (isVerified) {
+                return ResponseEntity.ok(Map.of("message", "Payment verified and access granted"));
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "Invalid payment signature"));
+            }
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to verify payment: " + e.getMessage()));
+        }
+    }
 }
