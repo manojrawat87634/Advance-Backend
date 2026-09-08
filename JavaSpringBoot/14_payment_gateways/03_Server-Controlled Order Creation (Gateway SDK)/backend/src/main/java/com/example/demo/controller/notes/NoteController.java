@@ -28,7 +28,7 @@ public class NoteController {
         Authentication authentication) {
     
     Long userId = Long.parseLong(authentication.getPrincipal().toString());
-    System.out.println("-----------------------------hii------------------------");
+    System.out.println();
     System.out.print(noteId);
     NoteResponse response = noteService.updateNoteMetadata(userId, noteId, request);
     

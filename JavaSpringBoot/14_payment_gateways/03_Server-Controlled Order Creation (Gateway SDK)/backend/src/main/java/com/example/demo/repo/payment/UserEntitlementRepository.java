@@ -19,7 +19,7 @@ public interface UserEntitlementRepository extends JpaRepository<UserEntitlement
     List<UserEntitlement> findByUserIdAndIsActive(Long userId, Boolean isActive);
 
     boolean existsByUserIdAndMediaAssetIdAndIsActiveTrue(Long userId, Long mediaAssetId);
-
+    boolean existsByUserIdAndMediaAssetId(Long userId, Long mediaAssetId);
     @Query("SELECT e FROM UserEntitlement e WHERE e.userId = :userId AND e.mediaAssetId = :mediaAssetId " +
            "AND e.isActive = true AND (e.expiresAt IS NULL OR e.expiresAt > :now)")
     Optional<UserEntitlement> findValidEntitlement(

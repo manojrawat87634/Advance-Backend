@@ -1,5 +1,4 @@
 package com.example.demo.models.payments;
-
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

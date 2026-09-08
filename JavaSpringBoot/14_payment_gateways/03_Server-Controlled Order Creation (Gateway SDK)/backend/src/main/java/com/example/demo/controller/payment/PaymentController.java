@@ -1,4 +1,5 @@
 package com.example.demo.controller.payment;
+
 // Adjust to your actual Auth Principal class
 import com.example.demo.services.payment.PaymentService;
 import com.razorpay.RazorpayException;
@@ -12,6 +13,8 @@ import java.nio.file.attribute.UserPrincipal;
 import java.util.Map;
 import com.example.demo.dto.payment.PaymentOrderRequest;
 import com.example.demo.dto.payment.PaymentOrderResponse;
+import com.example.demo.dto.payment.verify.PaymentVerificationRequest;
+
 @RestController
 @RequestMapping("/api/payments")
 public class PaymentController {
@@ -29,8 +32,7 @@ public class PaymentController {
     @PostMapping("/create-order")
     public ResponseEntity<?> createPaymentOrder(
             @RequestBody PaymentOrderRequest request,
-            Authentication  authentication
-    ) {
+            Authentication authentication) {
         // 1. Validate request payload
         if (request == null || request.noteId() == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "noteId is required"));
@@ -39,8 +41,7 @@ public class PaymentController {
         try {
             // 2. Extract authenticated user's ID
             // Long userId = currentUser.getId();
-    Long userId = Long.parseLong(authentication.getPrincipal().toString());
-            
+            Long userId = Long.parseLong(authentication.getPrincipal().toString());
 
             // 3. Delegate order creation logic to service layer
             PaymentOrderResponse response = paymentService.createOrder(userId, request.noteId());
@@ -63,13 +64,10 @@ public class PaymentController {
         }
     }
 
-
-
     @PostMapping("/verify")
     public ResponseEntity<?> verifyPayment(
             @RequestBody PaymentVerificationRequest request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         if (request == null || request.razorpay_order_id() == null || request.razorpay_payment_id() == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "Missing required verification details"));
         }
@@ -83,8 +81,7 @@ public class PaymentController {
                     request.noteId(),
                     request.razorpay_order_id(),
                     request.razorpay_payment_id(),
-                    request.razorpay_signature()
-            );
+                    request.razorpay_signature());
 
             if (isVerified) {
                 return ResponseEntity.ok(Map.of("message", "Payment verified and access granted"));
