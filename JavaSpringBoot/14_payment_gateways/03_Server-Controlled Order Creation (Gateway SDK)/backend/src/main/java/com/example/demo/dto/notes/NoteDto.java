@@ -3,8 +3,10 @@ package com.example.demo.dto.notes;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -39,6 +41,8 @@ public class NoteDto {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class NoteResponse {
         private Long id;
         private Long uploaderId;
@@ -48,6 +52,8 @@ public class NoteDto {
         private Long priceInSubunits;
         private String currency;
         private Boolean isPublished;
+        private boolean isPurchased;
+        private String accessUrl;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
     }

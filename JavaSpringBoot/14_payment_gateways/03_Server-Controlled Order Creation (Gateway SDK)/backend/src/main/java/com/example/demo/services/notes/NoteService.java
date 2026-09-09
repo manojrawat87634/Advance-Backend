@@ -2,7 +2,6 @@ package com.example.demo.services.notes;
 
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -11,12 +10,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.demo.dto.image.MediaAssetResponse;
-import com.example.demo.dto.notes.NoteDto.CreateNoteRequest;
 import com.example.demo.dto.notes.NoteDto.NoteResponse;
 import com.example.demo.dto.notes.NoteDto.UpdateNoteRequest;
 import com.example.demo.models.notes.Note;
 import com.example.demo.repo.notes.NoteRepository;
-import com.example.demo.services.media.*;
+import com.example.demo.repo.payment.PaymentOrderRepository;
+import com.example.demo.repo.payment.UserEntitlementRepository;
+import com.example.demo.services.media.MediaService;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -26,21 +26,24 @@ public class NoteService {
 
     private final NoteRepository noteRepository;
     private final MediaService mediaService;
+    private final UserEntitlementRepository userEntitlementRepository;
+    private final PaymentOrderRepository paymentOrderRepository;
 
     @Transactional
     public NoteResponse updateNoteMetadata(Long uploaderId, Long noteId, UpdateNoteRequest request) {
         Note note = noteRepository.findById(noteId)
                 .orElseThrow(() -> new EntityNotFoundException("Note not found with ID: " + noteId));
 
-        // Security Check: Ensure the user modifying the note is the actual owner
         if (!note.getUploaderId().equals(uploaderId)) {
             throw new AccessDeniedException("You are not allowed to update this note.");
         }
 
-        // Update metadata fields
-        note.setTitle(request.getTitle());
-        note.setDescription(request.getDescription());
-
+        if (request.getTitle() != null) {
+            note.setTitle(request.getTitle());
+        }
+        if (request.getDescription() != null) {
+            note.setDescription(request.getDescription());
+        }
         if (request.getPriceInSubunits() != null) {
             note.setPriceInSubunits(request.getPriceInSubunits());
         }
@@ -51,19 +54,12 @@ public class NoteService {
             note.setIsPublished(request.getIsPublished());
         }
 
-        // Spring Data JPA automatically flushes changes at transaction commit
-        // (@Transactional),
-        // but explicit save is good practice.
         Note updatedNote = noteRepository.save(note);
-        return mapToResponse(updatedNote);
+        return mapToResponse(updatedNote, uploaderId);
     }
 
     @Transactional
     public NoteResponse uploadNoteAsset(MultipartFile file, Long userId) {
-
-        // 1. Upload the file to MinIO via MediaService
-        // Adjust "NOTES_APP" and "NOTE_PDF" to match your system's client app and
-        // entity type constants
         MediaAssetResponse mediaResponse = mediaService.uploadDirectlyToMinio(
                 file,
                 "NOTES_APP",
@@ -71,39 +67,41 @@ public class NoteService {
                 userId.toString(),
                 userId);
 
-        // 2. Build Note using the returned media asset ID
+        // Adjust mediaResponse.id() to mediaResponse.getId() if MediaAssetResponse is a class instead of a record
+        Long mediaId = mediaResponse.id();
+
         Note note = Note.builder()
-                .mediaAssetId(mediaResponse.id()) // or mediaResponse.getId() depending on your DTO
-                .title(null) // Default title until updated
+                .mediaAssetId(mediaId)
+                .title(null)
                 .description(null)
                 .priceInSubunits(null)
                 .currency(null)
-                .isPublished(false) // Set to false until details are completed
-                .isDeleted(false).uploaderId(userId)
+                .isPublished(false)
+                .isDeleted(false)
+                .uploaderId(userId)
                 .build();
 
-        // 3. Save and return mapped response
         Note savedNote = noteRepository.save(note);
-        return mapToResponse(savedNote);
+        return mapToResponse(savedNote, userId);
     }
 
     @Transactional(readOnly = true)
-    public NoteResponse getNoteById(Long noteId) {
+    public NoteResponse getNoteById(Long noteId, Long currentUserId) {
         Note note = noteRepository.findByIdAndIsDeletedFalse(noteId)
                 .orElseThrow(() -> new RuntimeException("Note not found with id: " + noteId));
-        return mapToResponse(note);
+        return mapToResponse(note, currentUserId);
     }
 
     @Transactional(readOnly = true)
-    public Page<NoteResponse> getAllPublishedNotes(Pageable pageable) {
+    public Page<NoteResponse> getAllPublishedNotes(Long currentUserId, Pageable pageable) {
         return noteRepository.findByIsPublishedTrueAndIsDeletedFalse(pageable)
-                .map(this::mapToResponse);
+                .map(note -> mapToResponse(note, currentUserId));
     }
 
     @Transactional(readOnly = true)
-    public Page<NoteResponse> searchNotes(String keyword, Pageable pageable) {
+    public Page<NoteResponse> searchNotes(String keyword, Long currentUserId, Pageable pageable) {
         return noteRepository.searchPublishedNotes(keyword, pageable)
-                .map(this::mapToResponse);
+                .map(note -> mapToResponse(note, currentUserId));
     }
 
     @Transactional
@@ -126,7 +124,7 @@ public class NoteService {
         if (request.getIsPublished() != null)
             note.setIsPublished(request.getIsPublished());
 
-        return mapToResponse(noteRepository.save(note));
+        return mapToResponse(noteRepository.save(note), uploaderId);
     }
 
     @Transactional
@@ -142,7 +140,26 @@ public class NoteService {
         noteRepository.save(note);
     }
 
-    private NoteResponse mapToResponse(Note note) {
+    private NoteResponse mapToResponse(Note note, Long currentUserId) {
+        boolean isOwner = currentUserId != null && note.getUploaderId().equals(currentUserId);
+        
+        // Checks user_entitlements table directly using user_id and media_asset_id
+        boolean isPurchased = isOwner || (currentUserId != null 
+                && note.getMediaAssetId() != null 
+                && userEntitlementRepository.existsByUserIdAndMediaAssetIdAndIsActiveTrue(currentUserId, note.getMediaAssetId()));
+
+        String accessUrl = null;
+
+        if (isPurchased && note.getMediaAssetId() != null) {
+            try {
+                MediaAssetResponse mediaAsset = mediaService.getAccessUrl(note.getMediaAssetId(), note.getUploaderId());
+                // Adjust mediaAsset.accessUrl() to mediaAsset.getAccessUrl() if MediaAssetResponse is a class
+                accessUrl = mediaAsset.accessUrl();
+            } catch (Exception e) {
+                accessUrl = null;
+            }
+        }
+
         return NoteResponse.builder()
                 .id(note.getId())
                 .uploaderId(note.getUploaderId())
@@ -152,6 +169,8 @@ public class NoteService {
                 .priceInSubunits(note.getPriceInSubunits())
                 .currency(note.getCurrency())
                 .isPublished(note.getIsPublished())
+                .isPurchased(isPurchased)
+                .accessUrl(accessUrl)
                 .createdAt(note.getCreatedAt())
                 .updatedAt(note.getUpdatedAt())
                 .build();

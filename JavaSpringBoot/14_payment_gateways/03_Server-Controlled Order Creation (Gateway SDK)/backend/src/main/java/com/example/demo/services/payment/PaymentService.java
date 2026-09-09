@@ -170,10 +170,8 @@ public class PaymentService {
             entitlement.setExpiresAt(null); // Lifetime access
             entitlement.setCreatedAt(LocalDateTime.now());
             entitlement.setUpdatedAt(LocalDateTime.now());
-
             userEntitlementRepository.save(entitlement);
         }
-
         return true;
     }
 
@@ -183,7 +181,6 @@ public class PaymentService {
             options.put("razorpay_order_id", orderId);
             options.put("razorpay_payment_id", paymentId);
             options.put("razorpay_signature", signature);
-
             return Utils.verifyPaymentSignature(options, razorpaySecret);
         } catch (Exception e) {
             System.err.println("Signature verification failed: " + e.getMessage());
